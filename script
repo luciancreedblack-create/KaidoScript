@@ -1,0 +1,83 @@
+-- [[ Put this LocalScript inside StarterPlayer -> StarterPlayerScripts ]] --
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- ==================== [ CONFIGURATION ] ====================
+local CONFIG = {
+	DEFAULT_TEXT = "ข้อความที่ต้องการใส่", -- ข้อความเริ่มต้น
+	TEXT_COLOR = Color3.fromRGB(255, 215, 0), -- สีตัวหนังสือ (สีทอง)
+	STROKE_COLOR = Color3.fromRGB(0, 0, 0),    -- สีขอบตัวหนังสือ (สีดำ)
+	
+	HEIGHT_OFFSET = Vector3.new(0, 2.8, 0),    -- ความสูงเหนือหัว
+	MAX_DISTANCE = 100,                        -- ระยะสูงสุดที่มองเห็น (studs)
+	BOB_SPEED = 1.5,                           -- ความเร็วในการลอยขึ้นลง
+	BOB_HEIGHT = 0.3                           -- ระยะการลอยขึ้นลง
+}
+-- ===========================================================
+
+local activeTween = nil
+
+local function setupUltimateLocalOverhead(character: Model)
+	local head = character:WaitForChild("Head", 5)
+	if not head then return end
+
+	-- ลบของเก่าออกและล้าง Tween ถ้ามีอยู่
+	if activeTween then
+		activeTween:Cancel()
+		activeTween = nil
+	end
+	
+	local existing = head:FindFirstChild("LocalOverheadGui")
+	if existing then existing:Destroy() end
+
+	-- 1. สร้าง BillboardGui
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "LocalOverheadGui"
+	billboard.Size = UDim2.new(0, 220, 0, 55)
+	billboard.StudsOffset = CONFIG.HEIGHT_OFFSET
+	billboard.MaxDistance = CONFIG.MAX_DISTANCE
+	billboard.AlwaysOnTop = true
+	billboard.ResetOnSpawn = false
+	billboard.Adornee = head
+
+	-- 2. สร้าง TextLabel
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Name = "DisplayLabel"
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.TextTransparency = 1 -- เริ่มต้นแบบใส เพื่อทำ Fade-in
+	textLabel.Text = CONFIG.DEFAULT_TEXT
+	textLabel.TextColor3 = CONFIG.TEXT_COLOR
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.FredokaOne
+	textLabel.Parent = billboard
+
+	-- 3. เพิ่ม UIStroke
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = CONFIG.STROKE_COLOR
+	stroke.Thickness = 2.5
+	stroke.Transparency = 1 -- เริ่มต้นแบบใส
+	stroke.Parent = textLabel
+
+	billboard.Parent = head
+
+	-- 4. Fade-in Animation (ค่อยๆ สว่างขึ้น)
+	TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+	TweenService:Create(stroke, TweenInfo.new(0.5), {Transparency = 0}):Play()
+
+	-- 5. Smooth Bobbing Animation (เอฟเฟกต์ลอยขยับเบาๆ)
+	local tweenInfo = TweenInfo.new(CONFIG.BOB_SPEED, Enum.EasingStyle.Sinusoid, Enum.EasingDirection.InOut, -1, true)
+	activeTween = TweenService:Create(billboard, tweenInfo, {
+		StudsOffset = CONFIG.HEIGHT_OFFSET + Vector3.new(0, CONFIG.BOB_HEIGHT, 0)
+	})
+	activeTween:Play()
+end
+
+-- ระบบดักจับการเกิดของตัวละคร
+LocalPlayer.CharacterAdded:Connect(setupUltimateLocalOverhead)
+
+if LocalPlayer.Character then
+	task.spawn(setupUltimateLocalOverhead, LocalPlayer.Character)
+end
