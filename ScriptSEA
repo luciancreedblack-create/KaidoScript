@@ -1,0 +1,134 @@
+-- [[ Put this LocalScript in StarterPlayer -> StarterPlayerScripts ]] --
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+
+local isFlying = false
+local bodyVelocity, bodyGyro = nil, nil
+local flySpeed = 60
+
+-- ==================== [ SYSTEM FUNCTIONS ] ====================
+
+-- 1. ระบบบิน / ลอย
+local function setFly(state, speed)
+	if speed then flySpeed = speed end
+	local char = LP.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = char.HumanoidRootPart
+	local hum = char:FindFirstChildOfClass("Humanoid")
+
+	if state then
+		if isFlying then return end
+		isFlying = true
+		if hum then hum.PlatformStand = true end
+
+		bodyVelocity = Instance.new("BodyVelocity", hrp)
+		bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
+		bodyVelocity.Velocity = Vector3.zero
+
+		bodyGyro = Instance.new("BodyGyro", hrp)
+		bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 100000
+		bodyGyro.CFrame = hrp.CFrame
+
+		task.spawn(function()
+			while isFlying and char and hrp do
+				local camera = workspace.CurrentCamera
+				local moveDir = hum and hum.MoveDirection or Vector3.zero
+				if moveDir.Magnitude > 0 then
+					bodyVelocity.Velocity = camera.CFrame:VectorToWorldSpace(Vector3.new(moveDir.X, 0, moveDir.Z)) * flySpeed
+				else
+					bodyVelocity.Velocity = Vector3.zero
+				end
+				bodyGyro.CFrame = camera.CFrame
+				RunService.RenderStepped:Wait()
+			end
+		end)
+	else
+		isFlying = false
+		if hum then hum.PlatformStand = false end
+		if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+		if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+	end
+end
+
+-- ==================== [ AI DYNAMIC PROCESSOR ] ====================
+
+local function processAICommand(msg)
+	local text = string.lower(msg)
+	local char = LP.Character
+	if not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+
+	-- ดึงตัวเลขแรกที่พบในประโยค (ถ้ามี)
+	local numberInput = tonumber(string.match(text, "%d+%.?%d*"))
+
+	-- A. หมวดการบิน / ลอย / ตก
+	if string.find(text, "บิน") or string.find(text, "ลอย") or string.find(text, "เหาะ") then
+		if string.find(text, "หยุด") or string.find(text, "เลิก") or string.find(text, "ปิด") or string.find(text, "ลง") then
+			setFly(false)
+		else
+			setFly(true, numberInput or 60)
+		end
+
+	-- B. หมวดความเร็ว (วิ่ง / เดิน / สปีด)
+	elseif string.find(text, "วิ่ง") or string.find(text, "เดิน") or string.find(text, "สปีด") or string.find(text, "เร็ว") or string.find(text, "ไว") then
+		if string.find(text, "ปกติ") or string.find(text, "ช้า") then
+			if hum then hum.WalkSpeed = 16 end
+		else
+			if hum then hum.WalkSpeed = numberInput or 100 end
+		end
+
+	-- C. หมวดการกระโดด (โดด / สูง)
+	elseif string.find(text, "โดด") or string.find(text, "เด้ง") then
+		if string.find(text, "ปกติ") then
+			if hum then hum.JumpPower = 50 end
+		else
+			if hum then hum.UseJumpPower = true hum.JumpPower = numberInput or 150 end
+		end
+
+	-- D. หมวดขนาดตัวละคร (ใหญ่ / เล็ก / ย่อ / ขยาย)
+	elseif string.find(text, "ใหญ่") or string.find(text, "ยักษ์") or string.find(text, "เล็ก") or string.find(text, "ย่อ") or string.find(text, "ตัว") then
+		local scale = numberInput or (string.find(text, "เล็ก") and 0.5 or 2)
+		if hum then
+			for _, prop in ipairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+				local s = hum:FindFirstChild(prop)
+				if s then s.Value = scale end
+			end
+		end
+
+	-- E. หมวดวาร์ป / ย้ายตำแหน่ง (ขึ้นฟ้า / ไปข้างหน้า / วาร์ป)
+	elseif string.find(text, "วาป") or string.find(text, "วาร์ป") or string.find(text, "ไป") or string.find(text, "ขึ้น") then
+		local dist = numberInput or 50
+		if hrp then
+			if string.find(text, "ฟ้า") or string.find(text, "สูง") or string.find(text, "บน") then
+				hrp.CFrame = hrp.CFrame + Vector3.new(0, dist, 0)
+			else
+				hrp.CFrame = hrp.CFrame + (hrp.CFrame.LookVector * dist)
+			end
+		end
+
+	-- F. หมวดมองทะลุ / ลอยทะลุตึก (Noclip)
+	elseif string.find(text, "ทะลุ") then
+		for _, part in ipairs(char:GetChildren()) do
+			if part:IsA("BasePart") then part.CanCollide = false end
+		end
+
+	-- G. หมวดรีเซ็ต / กลับเป็นปกติ
+	elseif string.find(text, "รี") or string.find(text, "ปกติ") or string.find(text, "เดิม") then
+		setFly(false)
+		if hum then
+			hum.WalkSpeed = 16
+			hum.JumpPower = 50
+			for _, prop in ipairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+				local s = hum:FindFirstChild(prop)
+				if s then s.Value = 1 end
+			end
+		end
+	end
+end
+
+-- ดักจับการพิมพ์ในช่องแชท
+LP.Chatted:Connect(processAICommand)
+LP.CharacterAdded:Connect(function() setFly(false) end)
