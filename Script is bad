@@ -1,0 +1,160 @@
+-- [[ Animal Hospital (Anomaly) - Ultimate Auto Farm & Coin Booster Hub ]] --
+-- [[ Put this into your Executor while playing Animal Hospital ]] --
+
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local PlayerGui = LP:WaitForChild("PlayerGui")
+
+-- ลบ UI เก่าทิ้งถ้ามี
+if PlayerGui:FindFirstChild("AnimalHospitalHub") then
+	PlayerGui.AnimalHospitalHub:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AnimalHospitalHub"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- หน้าต่างหลัก
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+mainFrame.Parent = screenGui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(255, 120, 50)
+
+-- หัวข้อ
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+title.Text = "🐾 Animal Hospital - Auto Coin & Farm Hub"
+title.TextColor3 = Color3.fromRGB(255, 160, 50)
+title.Font = Enum.Font.FredokaOne
+title.TextSize = 15
+title.Parent = mainFrame
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
+
+-- ปุ่มปิด
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 18
+closeBtn.Parent = mainFrame
+closeBtn.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
+
+-- ฟังก์ชันสร้างปุ่มฟังก์ชัน
+local function createButton(name, posY, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0.9, 0, 0, 38)
+	btn.Position = UDim2.new(0.05, 0, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+	btn.Text = name
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.FredokaOne
+	btn.TextSize = 14
+	btn.Parent = mainFrame
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+	
+	local active = false
+	btn.MouseButton1Click:Connect(function()
+		active = not active
+		if active then
+			btn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+			btn.Text = name .. " [ON]"
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+			btn.Text = name .. " [OFF]"
+		end
+		callback(active)
+	end)
+end
+
+-- สร้างปุ่มฟีเจอร์โกงเหรียญและช่วยเล่น
+createButton("💰 Auto Farm & Treat Patients (ฟาร์มเงิน/รักษาอัตโนมัติ)", 55, function(state)
+	task.spawn(function()
+		while state do
+			task.wait(0.5)
+			pcall(function()
+				-- จำลองการปฏิสัมพันธ์กับผู้ป่วยและเคสในโรงพยาบาลเพื่อรับเงิน
+				for _, obj in ipairs(workspace:GetDescendants()) do
+					if obj:IsA("ProximityPrompt") and (string.find(string.lower(obj.ActionText), "treat") or string.find(string.lower(obj.ActionText), "heal") or string.find(string.lower(obj.ActionText), "cure")) then
+						fireproximityprompt(obj)
+					end
+				end
+			end)
+		end
+	end)
+end)
+
+createButton("🧠 Infinite Sanity (สติเต็มตลอดกาล ไม่หลอน)", 100, function(state)
+	task.spawn(function()
+		while state do
+			task.wait(1)
+			pcall(function()
+				-- ล้างค่าความกลัวหรือสติแตกในตัวละคร (ถ้ามี Value ควบคุม Sanity)
+				local stats = LP:FindFirstChild("leaderstats") or LP:FindFirstChild("PlayerStats")
+				if stats then
+					for _, stat in ipairs(stats:GetChildren()) do
+						if string.find(string.lower(stat.Name), "sanity") or string.find(string.lower(stat.Name), "fear") then
+							stat.Value = 100 -- หรือปรับตามค่าสูงสุดของเกม
+						end
+					end
+				end
+			end)
+		end
+	end)
+end
+
+createButton("👁️ ESP Anomaly (มองทะลุกระจกจับผิดสัตว์ประหลาด)", 145, function(state)
+	task.spawn(function()
+		while state do
+			task.wait(1)
+			pcall(function()
+				for _, npc in ipairs(workspace:GetChildren()) do
+					if npc:FindFirstChild("Head") and not npc:FindFirstChild("HumanoidRootPart") == LP.Character then
+						if not npc.Head:FindFirstChild("ESP_Tag") then
+							local bb = Instance.new("BillboardGui", npc.Head)
+							bb.Name = "ESP_Tag"
+							bb.Size = UDim2.new(0, 100, 0, 40)
+							bb.AlwaysOnTop = true
+							local txt = Instance.new("TextLabel", bb)
+							txt.Size = UDim2.new(1,0,1,0)
+							txt.BackgroundTransparency = 1
+							txt.Text = "⚠️ ตรวจสอบแล้ว"
+							txt.TextColor3 = Color3.fromRGB(255, 50, 50)
+							txt.Font = Enum.Font.SourceSansBold
+							txt.TextSize = 12
+						end
+					end
+				end
+			end)
+		end
+	end)
+end
+
+createButton("⚡ Speed Boost & Infinite Jump", 190, function(state)
+	local char = LP.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.WalkSpeed = state and 32 or 16
+	end
+end)
+
+-- หมายเหตุเตือนผู้ใช้
+local note = Instance.new("TextLabel")
+note.Size = UDim2.new(1, 0, 0, 40)
+note.Position = UDim2.new(0, 0, 0, 245)
+note.BackgroundTransparency = 1
+note.Text = "💡 เปิดระบบ Auto Farm เพื่อเก็บเหรียญ Cat Coins เข้ากระเป๋าเรื่อยๆ ครับ!"
+note.TextColor3 = Color3.fromRGB(150, 150, 180)
+note.Font = Enum.Font.SourceSans
+note.TextSize = 12
+note.TextWrapped = true
+note.Parent = mainFrame
