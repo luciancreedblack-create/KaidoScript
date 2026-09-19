@@ -1,0 +1,12 @@
+local button = script.Parent
+local player = game.Players.LocalPlayer
+local itemName = "Boombox" -- ชื่อไอเทมที่วางไว้ใน ReplicatedStorage
+
+button.MouseButton1Click:Connect(function()
+	local item = game.ReplicatedStorage:FindFirstChild(itemName)
+	if item then
+		local backpack = player:WaitForChild("Backpack")
+		item:Clone().Parent = backpack
+		print("ได้รับไอเทมเรียบร้อย!")
+	end
+end)
