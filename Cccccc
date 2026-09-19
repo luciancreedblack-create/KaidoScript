@@ -1,0 +1,525 @@
+-- [[ Put this LocalScript in StarterPlayer -> StarterPlayerScripts ]] --
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalizationService = game:GetService("LocalizationService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local LP = Players.LocalPlayer
+
+local isFlying = false
+local bodyVelocity, bodyGyro = nil, nil
+local flySpeed = 60
+local autoPlayActive = false
+
+-- ==================== [ SYSTEM FUNCTIONS ] ====================
+
+-- 1. ระบบ ANTI-AFK (ป้องกันการถูกเตะเมื่อพับจอ/ไม่ขยับตัว)
+local function enableAntiAFK()
+	LP.Idled:Connect(function()
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.new(0, 0))
+	end)
+	
+	task.spawn(function()
+		while true do
+			task.wait(30)
+			pcall(function()
+				VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+				task.wait(0.1)
+				VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+			end)
+		end
+	end)
+end
+
+-- 2. ระบบ AI เล่นอัตโนมัติ (Auto-Play AI System)
+local function startAIAutoPlay(state)
+	autoPlayActive = state
+	if not autoPlayActive then return end
+
+	task.spawn(function()
+		while autoPlayActive do
+			task.wait(0.5)
+			local char = LP.Character
+			if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+				local hrp = char.HumanoidRootPart
+				local hum = char:FindFirstChildOfClass("Humanoid")
+
+				-- ค้นหา Checkpoint หรือจุดหมายถัดไปในแมพ
+				local targetPart = nil
+				local minDistance = math.huge
+
+				for _, part in ipairs(workspace:GetDescendants()) do
+					if part:IsA("BasePart") then
+						local name = string.lower(part.Name)
+						if string.find(name, "stage") or string.find(name, "checkpoint") or string.find(name, "spawn") or string.find(name, "win") then
+							local dist = (part.Position - hrp.Position).Magnitude
+							if dist > 5 and dist < minDistance then
+								minDistance = dist
+								targetPart = part
+							end
+						end
+					end
+				end
+
+				-- เดินไปหาจุดหมาย หรือขยับตัวอัตโนมัติ
+				if targetPart then
+					hum:MoveTo(targetPart.Position)
+				else
+					hum:MoveTo(hrp.Position + Vector3.new(math.random(-10, 10), 0, math.random(-10, 10)))
+				end
+			end
+		end
+	end)
+end
+
+-- 3. ระบบบิน
+local function setFly(state, speed)
+	if speed then flySpeed = speed end
+	local char = LP.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = char.HumanoidRootPart
+	local hum = char:FindFirstChildOfClass("Humanoid")
+
+	if state then
+		if isFlying then return end
+		isFlying = true
+		if hum then hum.PlatformStand = true end
+
+		bodyVelocity = Instance.new("BodyVelocity", hrp)
+		bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
+		bodyVelocity.Velocity = Vector3.zero
+
+		bodyGyro = Instance.new("BodyGyro", hrp)
+		bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 100000
+		bodyGyro.CFrame = hrp.CFrame
+
+		task.spawn(function()
+			while isFlying and char and hrp do
+				local camera = workspace.CurrentCamera
+				local moveDir = hum and hum.MoveDirection or Vector3.zero
+				if moveDir.Magnitude > 0 then
+					bodyVelocity.Velocity = camera.CFrame:VectorToWorldSpace(Vector3.new(moveDir.X, 0, moveDir.Z)) * flySpeed
+				else
+					bodyVelocity.Velocity = Vector3.zero
+				end
+				bodyGyro.CFrame = camera.CFrame
+				RunService.RenderStepped:Wait()
+			end
+		end)
+	else
+		isFlying = false
+		if hum then hum.PlatformStand = false end
+		if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+		if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+	end
+end
+
+-- 4. ระบบเปิดดู YouTube
+local function openYouTubePlayer(videoIdOrUrl)
+	local playerGui = LP:WaitForChild("PlayerGui")
+	local existing = playerGui:FindFirstChild("YouTubePlayerGui")
+	if existing then existing:Destroy() end
+
+	local videoId = videoIdOrUrl
+	if string.find(videoIdOrUrl, "v=") then
+		videoId = string.match(videoIdOrUrl, "v=([%w_%-]+)")
+	elseif string.find(videoIdOrUrl, "youtu.be/") then
+		videoId = string.match(videoIdOrUrl, "youtu.be/([%w_%-]+)")
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YouTubePlayerGui"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 480, 0, 300)
+	frame.Position = UDim2.new(0.5, -240, 0.5, -150)
+	frame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+	frame.Parent = screenGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -40, 0, 30)
+	title.Position = UDim2.new(0, 10, 0, 5)
+	title.BackgroundTransparency = 1
+	title.Text = "▶ YouTube Player (" .. (videoId or "Video") .. ")"
+	title.TextColor3 = Color3.fromRGB(255, 50, 50)
+	title.Font = Enum.Font.FredokaOne
+	title.TextSize = 14
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = frame
+
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Size = UDim2.new(0, 30, 0, 30)
+	closeBtn.Position = UDim2.new(1, -35, 0, 5)
+	closeBtn.BackgroundTransparency = 1
+	closeBtn.Text = "✕"
+	closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeBtn.Font = Enum.Font.SourceSansBold
+	closeBtn.TextSize = 18
+	closeBtn.Parent = frame
+	closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+	local videoDisplay = Instance.new("ImageLabel")
+	videoDisplay.Size = UDim2.new(1, -20, 1, -50)
+	videoDisplay.Position = UDim2.new(0, 10, 0, 40)
+	videoDisplay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	if videoId and videoId ~= "" then
+		videoDisplay.Image = "https://img.youtube.com/vi/" .. videoId .. "/hqdefault.jpg"
+	end
+	videoDisplay.Parent = frame
+	Instance.new("UICorner", videoDisplay).CornerRadius = UDim.new(0, 6)
+
+	local playIcon = Instance.new("TextLabel")
+	playIcon.Size = UDim2.new(1, 0, 1, 0)
+	playIcon.BackgroundTransparency = 1
+	playIcon.Text = "▶\nเปิดหน้าเล่นวิดีโอเรียบร้อย"
+	playIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+	playIcon.Font = Enum.Font.FredokaOne
+	playIcon.TextSize = 22
+	playIcon.Parent = videoDisplay
+end
+
+-- 5. ระบบเปลี่ยนภาษาทั้งแมพ
+local function translateMapToLanguage(langCode)
+	local playerGui = LP:WaitForChild("PlayerGui")
+	local count = 0
+	for _, desc in ipairs(game:GetDescendants()) do
+		if desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox") then
+			if desc.Text ~= "" and not desc:IsDescendantOf(playerGui:FindFirstChild("PrivateAIChatGui")) then
+				count = count + 1
+				task.spawn(function()
+					pcall(function()
+						local translated = LocalizationService:GetTranslatorForLocaleAsync(langCode):Translate(game, desc.Text)
+						if translated and translated ~= "" then
+							desc.Text = translated
+						end
+					end)
+				end)
+			end
+		end
+	end
+	return count
+end
+
+-- 6. ระบบวาร์ปไปจุดชัยชนะ Obby
+local function teleportToVictory()
+	local char = LP.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
+	local hrp = char.HumanoidRootPart
+
+	for _, item in ipairs(workspace:GetDescendants()) do
+		if item:IsA("BasePart") or item:IsA("Model") then
+			local name = string.lower(item.Name)
+			if string.find(name, "win") or string.find(name, "victory") or string.find(name, "finish") or string.find(name, "end") or string.find(name, "ชัยชนะ") then
+				local targetCFrame = item:IsA("Model") and item:GetPivot() or item.CFrame
+				hrp.CFrame = targetCFrame + Vector3.new(0, 4, 0)
+				return true
+			end
+		end
+	end
+	
+	hrp.CFrame = hrp.CFrame + Vector3.new(0, 300, 0)
+	return true
+end
+
+local languageCodes = {
+	["อังกฤษ"] = "en", ["english"] = "en", ["en"] = "en",
+	["ญี่ปุ่น"] = "ja", ["japanese"] = "ja", ["ja"] = "ja",
+	["เกาหลี"] = "ko", ["korean"] = "ko", ["ko"] = "ko",
+	["จีน"] = "zh-cn", ["chinese"] = "zh-cn", ["zh"] = "zh-cn",
+	["สเปน"] = "es", ["spanish"] = "es", ["es"] = "es",
+	["ฝรั่งเศส"] = "fr", ["french"] = "fr", ["fr"] = "fr",
+	["เยอรมัน"] = "de", ["german"] = "de", ["de"] = "de",
+	["รัสเซีย"] = "ru", ["russian"] = "ru", ["ru"] = "ru",
+	["ไทย"] = "th", ["thai"] = "th", ["th"] = "th"
+}
+
+local addChatMessage = function(sender, text, color) end
+local processAICommand = function(msg) end
+
+-- 7. ระบบตรวจสอบและแจ้งเตือนแมพอัปเดต
+local function checkMapUpdates()
+	task.spawn(function()
+		task.wait(2)
+		local success, info = pcall(function()
+			return MarketplaceService:GetProductInfo(game.PlaceId)
+		end)
+
+		if success and info then
+			local mapName = info.Name or "แมพปัจจุบัน"
+			addChatMessage("📢 ระบบแมพ", "ตรวจสอบข้อมูลแมพ: <b>" .. mapName .. "</b>", Color3.fromRGB(255, 200, 100))
+			if info.Updated then
+				addChatMessage("🔔 อัปเดตล่าสุด", "แมพนี้อัปเดตเมื่อ: " .. tostring(info.Updated), Color3.fromRGB(100, 255, 150))
+			end
+		end
+	end)
+end
+
+-- ==================== [ AUTO SPEECH TO TEXT SETUP ] ====================
+
+local function setupSpeechToTextEngine()
+	task.spawn(function()
+		local char = LP.Character or LP.CharacterAdded:Wait()
+		
+		local audioDeviceInput = Instance.new("AudioDeviceInput")
+		audioDeviceInput.Name = "AutoVoiceInput"
+		audioDeviceInput.Player = LP
+		audioDeviceInput.Parent = char
+
+		local audioSpeechToText = Instance.new("AudioSpeechToText")
+		audioSpeechToText.Name = "AutoSpeechToText"
+		audioSpeechToText.Enabled = true
+		audioSpeechToText.Parent = char
+
+		local wire = Instance.new("Wire")
+		wire.Name = "VoiceWire"
+		wire.SourceInstance = audioDeviceInput
+		wire.SourceName = "Output"
+		wire.TargetInstance = audioSpeechToText
+		wire.TargetName = "Input"
+		wire.Parent = char
+
+		audioSpeechToText:GetPropertyChangedSignal("Text"):Connect(function()
+			local textResult = audioSpeechToText.Text
+			if textResult and textResult ~= "" then
+				addChatMessage("คุณ (พูด)", textResult, Color3.fromRGB(150, 255, 150))
+				processAICommand(textResult)
+			end
+		end)
+	end)
+end
+
+-- ==================== [ HIGH-IQ SMART AI PROCESSOR ] ====================
+
+processAICommand = function(msg)
+	local text = string.lower(msg)
+	local char = LP.Character
+	if not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+
+	local numberInput = tonumber(string.match(text, "%d+%.?%d*"))
+
+	-- A. เปิดระบบ AI เล่นให้อัตโนมัติ (Auto Play)
+	if string.find(text, "เล่นอัตโนมัติ") or string.find(text, "ให้เอไอเล่น") or string.find(text, "เอไอเล่น") or string.find(text, "auto play") then
+		if string.find(text, "หยุด") or string.find(text, "ปิด") or string.find(text, "เลิก") then
+			startAIAutoPlay(false)
+			addChatMessage("AI", "ปิดระบบ AI เล่นให้อัตโนมัติเรียบร้อยครับ", Color3.fromRGB(255, 200, 100))
+		else
+			startAIAutoPlay(true)
+			addChatMessage("AI", "เปิดระบบ AI เล่นให้อัตโนมัติ + ป้องกัน AFK เรียบร้อยครับ!", Color3.fromRGB(100, 255, 100))
+		end
+
+	-- B. เช็คแมพอัปเดต
+	elseif string.find(text, "อัปเดต") or string.find(text, "เช็คแมพ") then
+		checkMapUpdates()
+
+	-- C. วาร์ปไปออบบี้ / จุดชัยชนะ
+	elseif string.find(text, "ออบบี้") or string.find(text, "obby") or string.find(text, "ชัยชนะ") or string.find(text, "ด่าน") then
+		teleportToVictory()
+		addChatMessage("AI", "วาร์ปไปที่ชัยชนะเรียบร้อยครับ!", Color3.fromRGB(0, 255, 150))
+
+	-- D. เปิดดู YouTube
+	elseif string.find(text, "ยูทูป") or string.find(text, "youtube") or string.find(text, "yt") or string.find(text, "คลิป") or string.find(text, "เพลง") then
+		local videoId = string.match(msg, "https?://%S+") or string.match(msg, "watch%?v=(%S+)") or string.match(msg, "youtu%.be/(%S+)") or string.match(msg, "%w%w%w%w%w%w%w%w%w%w%w")
+		openYouTubePlayer(videoId or "dQw4w9WgXcQ")
+		addChatMessage("AI", "เปิดหน้าต่างเล่น YouTube เรียบร้อยครับ!", Color3.fromRGB(255, 80, 80))
+
+	-- E. เปลี่ยนภาษา
+	elseif string.find(text, "ภาษา") or string.find(text, "แปล") or string.find(text, "lang") then
+		local selectedLang = "en"
+		local langName = "ภาษาอังกฤษ"
+		for key, code in pairs(languageCodes) do
+			if string.find(text, key) then
+				selectedLang = code
+				langName = key
+				break
+			end
+		end
+		translateMapToLanguage(selectedLang)
+		addChatMessage("AI", "เปลี่ยนภาษาแมพเป็น " .. langName .. " เรียบร้อยครับ!", Color3.fromRGB(0, 200, 255))
+
+	-- F. บิน
+	elseif string.find(text, "บิน") or string.find(text, "ลอย") or string.find(text, "fly") then
+		if string.find(text, "หยุด") or string.find(text, "ปิด") or string.find(text, "ลง") then
+			setFly(false)
+			addChatMessage("AI", "ปิดระบบการบินเรียบร้อยครับ", Color3.fromRGB(255, 200, 100))
+		else
+			local spd = numberInput or 60
+			setFly(true, spd)
+			addChatMessage("AI", "เปิดโหมดบินความเร็ว " .. spd .. " เรียบร้อยครับ", Color3.fromRGB(100, 255, 100))
+		end
+
+	-- G. ปรับความเร็ว
+	elseif string.find(text, "วิ่ง") or string.find(text, "เดิน") or string.find(text, "speed") then
+		if string.find(text, "ปกติ") then
+			if hum then hum.WalkSpeed = 16 end
+			addChatMessage("AI", "ปรับความเร็วเดินปกติแล้วครับ", Color3.fromRGB(255, 200, 100))
+		else
+			local spd = numberInput or 100
+			if hum then hum.WalkSpeed = spd end
+			addChatMessage("AI", "ปรับความเร็วการวิ่งเป็น " .. spd .. " เรียบร้อยครับ", Color3.fromRGB(100, 255, 100))
+		end
+
+	-- H. คำทักทาย / คุยเล่น
+	elseif string.find(text, "หวัดดี") or string.find(text, "สวัสดี") or string.find(text, "hi") or string.find(text, "hello") then
+		addChatMessage("AI", "สวัสดีครับ! สั่งงานได้ทั้งการพิมพ์และพูดผ่านไมค์เลยครับ", Color3.fromRGB(150, 220, 255))
+	else
+		addChatMessage("AI", "รับทราบครับ! สามารถสั่ง 'ให้เอไอเล่น', 'บิน', หรือ 'เช็คแมพ' ได้เลยครับ", Color3.fromRGB(180, 220, 255))
+	end
+end
+
+-- ==================== [ PRIVATE AI CHAT GUI ] ====================
+
+local function createPrivateChatUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	local existing = playerGui:FindFirstChild("PrivateAIChatGui")
+	if existing then existing:Destroy() end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "PrivateAIChatGui"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 340, 0, 240)
+	mainFrame.Position = UDim2.new(0, 20, 0.5, -120)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	mainFrame.BackgroundTransparency = 0.15
+	mainFrame.ClipsDescendants = true
+	mainFrame.Parent = screenGui
+	Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+	local uiStroke = Instance.new("UIStroke", mainFrame)
+	uiStroke.Color = Color3.fromRGB(0, 170, 255)
+	uiStroke.Thickness = 1.5
+
+	local titleBar = Instance.new("TextLabel")
+	titleBar.Size = UDim2.new(1, 0, 0, 30)
+	titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	titleBar.Text = "  🤖 Smart AI Play + Assistant"
+	titleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleBar.Font = Enum.Font.FredokaOne
+	titleBar.TextSize = 14
+	titleBar.TextXAlignment = Enum.TextXAlignment.Left
+	titleBar.Parent = mainFrame
+
+	local scrollFrame = Instance.new("ScrollingFrame")
+	scrollFrame.Size = UDim2.new(0.94, 0, 0.65, 0)
+	scrollFrame.Position = UDim2.new(0.03, 0, 0.15, 0)
+	scrollFrame.BackgroundTransparency = 1
+	scrollFrame.ScrollBarThickness = 4
+	scrollFrame.Parent = mainFrame
+
+	local uiListLayout = Instance.new("UIListLayout")
+	uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	uiListLayout.Padding = UDim.new(0, 5)
+	uiListLayout.Parent = scrollFrame
+
+	local inputFrame = Instance.new("Frame")
+	inputFrame.Size = UDim2.new(0.94, 0, 0.15, 0)
+	inputFrame.Position = UDim2.new(0.03, 0, 0.82, 0)
+	inputFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	inputFrame.Parent = mainFrame
+	Instance.new("UICorner", inputFrame).CornerRadius = UDim.new(0, 6)
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.72, 0, 1, 0)
+	textBox.Position = UDim2.new(0.03, 0, 0, 0)
+	textBox.BackgroundTransparency = 1
+	textBox.PlaceholderText = "พิมพ์สั่ง AI เช่น 'ให้เอไอเล่น', 'บิน'..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.Font = Enum.Font.SourceSans
+	textBox.TextSize = 14
+	textBox.TextXAlignment = Enum.TextXAlignment.Left
+	textBox.Parent = inputFrame
+
+	local sendBtn = Instance.new("TextButton")
+	sendBtn.Size = UDim2.new(0.2, 0, 0.8, 0)
+	sendBtn.Position = UDim2.new(0.77, 0, 0.1, 0)
+	sendBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+	sendBtn.Text = "ส่ง"
+	sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	sendBtn.Font = Enum.Font.FredokaOne
+	sendBtn.TextSize = 13
+	sendBtn.Parent = inputFrame
+	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 4)
+
+	addChatMessage = function(sender, text, color)
+		local msgLabel = Instance.new("TextLabel")
+		msgLabel.Size = UDim2.new(1, 0, 0, 0)
+		msgLabel.BackgroundTransparency = 1
+		msgLabel.Text = "<b>" .. sender .. ":</b> " .. text
+		msgLabel.RichText = true
+		msgLabel.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+		msgLabel.Font = Enum.Font.SourceSans
+		msgLabel.TextSize = 14
+		msgLabel.TextWrapped = true
+		msgLabel.TextXAlignment = Enum.TextXAlignment.Left
+		msgLabel.Parent = scrollFrame
+
+		msgLabel.Size = UDim2.new(1, 0, 0, msgLabel.TextBounds.Y + 2)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y + 10)
+		scrollFrame.CanvasPosition = Vector2.new(0, scrollFrame.CanvasSize.Y.Offset)
+	end
+
+	local function onSend()
+		local text = textBox.Text
+		if text ~= "" then
+			textBox.Text = ""
+			addChatMessage("คุณ", text, Color3.fromRGB(200, 220, 255))
+			processAICommand(text)
+		end
+	end
+
+	sendBtn.MouseButton1Click:Connect(onSend)
+	textBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then onSend() end
+	end)
+
+	-- Dragging System (ลากย้ายหน้าต่างได้)
+	local dragging, dragInput, dragStart, startPos
+	titleBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = mainFrame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then dragging = false end
+			end)
+		end
+	end)
+	titleBar.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	addChatMessage("AI", "ระบบพร้อมใช้งาน! พิมพ์สั่ง 'ให้เอไอเล่น' เพื่อให้ AI เดินเล่นออบบี้อัตโนมัติได้เลยครับ", Color3.fromRGB(150, 220, 255))
+	checkMapUpdates()
+end
+
+-- ==================== [ EXECUTION ] ====================
+
+LP.CharacterAdded:Connect(function()
+	setFly(false)
+	setupSpeechToTextEngine()
+end)
+
+enableAntiAFK()
+createPrivateChatUI()
+setupSpeechToTextEngine()
