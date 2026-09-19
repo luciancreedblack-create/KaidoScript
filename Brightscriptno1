@@ -1,0 +1,65 @@
+local UIS = game:GetService("UserInputService")
+local Run = game:GetService("RunService")
+local Player = game.Players.LocalPlayer
+
+local flying = false
+local speed = 50
+
+local function getHRP()
+	return Player.Character or Player.CharacterAdded:Wait()
+end
+
+local BV, BG, FX
+
+local function Fly(on)
+	local Char = getHRP()
+	local HRP = Char:WaitForChild("HumanoidRootPart")
+
+	if on then
+		BV = Instance.new("BodyVelocity", HRP)
+		BV.MaxForce = Vector3.new(1e9,1e9,1e9)
+
+		BG = Instance.new("BodyGyro", HRP)
+		BG.MaxTorque = Vector3.new(1e9,1e9,1e9)
+		BG.P = 10000
+
+		FX = Instance.new("ParticleEmitter", HRP)
+		FX.Rate = 40
+		FX.Speed = NumberRange.new(2)
+		FX.Lifetime = NumberRange.new(0.4)
+	else
+		if BV then BV:Destroy() end
+		if BG then BG:Destroy() end
+		if FX then FX:Destroy() end
+	end
+end
+
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+
+	if i.KeyCode == Enum.KeyCode.E then
+		flying = not flying
+		Fly(flying)
+	end
+end)
+
+Run.Heartbeat:Connect(function()
+	if not flying then return end
+
+	local Char = Player.Character
+	if not Char then return end
+	local HRP = Char:FindFirstChild("HumanoidRootPart")
+	if not HRP then return end
+
+	local dir = Vector3.zero
+
+	if UIS:IsKeyDown(Enum.KeyCode.W) then dir += workspace.CurrentCamera.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= workspace.CurrentCamera.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= workspace.CurrentCamera.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then dir += workspace.CurrentCamera.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+	if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+
+	BV.Velocity = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
+	BG.CFrame = workspace.CurrentCamera.CFrame
+end)
