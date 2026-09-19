@@ -1,0 +1,56 @@
+-- เริ่มต้นการทำงานทันทีที่โหลดมา
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- ฟังก์ชันค้นหาตัวแปรเงินอัตโนมัติ
+local function findCurrency()
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if not leaderstats then return nil end
+    
+    -- รายการชื่อที่พบบ่อยในเกม Roblox
+    local possibleNames = {"Money", "Robux", "Cash", "Gold", "Coins", "Credits", "Dollars"}
+    
+    for _, name in ipairs(possibleNames) do
+        if leaderstats:FindFirstChild(name) then
+            return leaderstats[name]
+        end
+    end
+    
+    -- ถ้าไม่เจอชื่อมาตรฐาน ให้ลองหา Value ใดๆ ที่มีใน leaderstats (กรณีเกมแปลกๆ)
+    for _, child in ipairs(leaderstats:GetChildren()) do
+        if child:IsA("NumberValue") or child:IsA("IntValue") then
+            return child
+        end
+    end
+    
+    return nil
+end
+
+-- ฟังก์ชันเพิ่มเงิน
+local function addRobux()
+    local currency = findCurrency()
+    
+    if currency then
+        -- บันทึกค่าเดิมไว้ก่อน (บางเกมต้องการส่งค่ากลับ)
+        local originalValue = currency.Value
+        
+        -- ตั้งค่าเป็นจำนวนมหาศาล
+        currency.Value = 999999999
+        
+        -- บางเกมมีการตรวจสอบความถูกต้อง (Validation) เราจึงลองเปลี่ยนแล้วเปลี่ยนกลับเร็วๆ
+        task.spawn(function()
+            task.wait(1)
+            if currency.Value == originalValue then
+                currency.Value = 999999999
+            end
+        end)
+        
+        print("[Robux Giver] Success! Found: " .. currency.Name .. " | Value: " .. currency.Value)
+    else
+        warn("[Robux Giver] Failed to find any currency variable in leaderstats.")
+    end
+end
+
+-- รันฟังก์ชันเพิ่มเงินทันที
+addRobux()
