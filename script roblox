@@ -1,0 +1,164 @@
+-- [[ Put this LocalScript in StarterPlayer -> StarterPlayerScripts ]] --
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+-- ==================== [ CONFIGURATION ] ====================
+local CONFIG = {
+	DEFAULT_TEXT = "ข้อความที่ต้องการใส่", -- ข้อความเริ่มต้น
+	TEXT_COLOR = Color3.fromRGB(255, 215, 0), -- สีตัวหนังสือ (สีทอง)
+	STROKE_COLOR = Color3.fromRGB(0, 0, 0),    -- สีขอบตัวหนังสือ (สีดำ)
+	HEIGHT_OFFSET = Vector3.new(0, 2.8, 0),    -- ความสูงเหนือหัว
+	BOB_SPEED = 1.5,                           -- ความเร็วในการลอยขึ้นลง
+	BOB_HEIGHT = 0.3                           -- ระยะการลอยขึ้นลง
+}
+-- ===========================================================
+
+local activeTween = nil
+
+-- 1. ระบบสร้าง Overhead GUI บนหัวตัวละคร
+local function setupUltimateOverhead(character: Model)
+	local head = character:WaitForChild("Head", 5)
+	if not head then return end
+
+	if activeTween then activeTween:Cancel() activeTween = nil end
+	local existing = head:FindFirstChild("LocalOverheadGui")
+	if existing then existing:Destroy() end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "LocalOverheadGui"
+	billboard.Size = UDim2.new(0, 220, 0, 55)
+	billboard.StudsOffset = CONFIG.HEIGHT_OFFSET
+	billboard.AlwaysOnTop = true
+	billboard.ResetOnSpawn = false
+	billboard.Adornee = head
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Name = "DisplayLabel"
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.TextTransparency = 1
+	textLabel.Text = CONFIG.DEFAULT_TEXT
+	textLabel.TextColor3 = CONFIG.TEXT_COLOR
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.FredokaOne
+	textLabel.Parent = billboard
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = CONFIG.STROKE_COLOR
+	stroke.Thickness = 2.5
+	stroke.Transparency = 1
+	stroke.Parent = textLabel
+
+	billboard.Parent = head
+
+	-- Fade-in & Smooth Bobbing Animation
+	TweenService:Create(textLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+	TweenService:Create(stroke, TweenInfo.new(0.5), {Transparency = 0}):Play()
+
+	local tweenInfo = TweenInfo.new(CONFIG.BOB_SPEED, Enum.EasingStyle.Sinusoid, Enum.EasingDirection.InOut, -1, true)
+	activeTween = TweenService:Create(billboard, tweenInfo, {
+		StudsOffset = CONFIG.HEIGHT_OFFSET + Vector3.new(0, CONFIG.BOB_HEIGHT, 0)
+	})
+	activeTween:Play()
+end
+
+-- 2. ระบบสร้าง UI เมนูพิมพ์เปลี่ยนชื่อ (ลากย้ายตำแหน่งได้)
+local function createDraggableUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	local existingGui = playerGui:FindFirstChild("NameChangerGui")
+	if existingGui then existingGui:Destroy() end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "NameChangerGui"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	-- กรอบเมนูหลัก
+	local frame = Instance.new("Frame")
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.new(0, 260, 0, 90)
+	frame.Position = UDim2.new(0.5, -130, 0.82, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	frame.BackgroundTransparency = 0.15
+	frame.Parent = screenGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+	local frameStroke = Instance.new("UIStroke")
+	frameStroke.Color = CONFIG.TEXT_COLOR
+	frameStroke.Thickness = 1.5
+	frameStroke.Parent = frame
+
+	-- ช่องพิมพ์ข้อความ
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.9, 0, 0.4, 0)
+	textBox.Position = UDim2.new(0.05, 0, 0.1, 0)
+	textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	textBox.PlaceholderText = "พิมพ์ชื่อใหม่..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextScaled = true
+	textBox.Font = Enum.Font.FredokaOne
+	textBox.Parent = frame
+	Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+
+	-- ปุ่มกดตกลง
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.9, 0, 0.35, 0)
+	button.Position = UDim2.new(0.05, 0, 0.55, 0)
+	button.BackgroundColor3 = CONFIG.TEXT_COLOR
+	button.Text = "เปลี่ยนชื่อ"
+	button.TextColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextScaled = true
+	button.Font = Enum.Font.FredokaOne
+	button.Parent = frame
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+
+	-- คำสั่งเปลี่ยนชื่อ
+	button.MouseButton1Click:Connect(function()
+		if textBox.Text ~= "" and LP.Character and LP.Character:FindFirstChild("Head") then
+			local overhead = LP.Character.Head:FindFirstChild("LocalOverheadGui")
+			if overhead and overhead:FindFirstChild("DisplayLabel") then
+				overhead.DisplayLabel.Text = textBox.Text
+			end
+		end
+	end)
+
+	-- ระบบลากกล่องย้ายตำแหน่ง (Draggable Logic)
+	local dragging, dragInput, dragStart, startPos
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then dragging = false end
+			end)
+		end
+	end)
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then update(input) end
+	end)
+end
+
+-- ==================== [ EXECUTION ] ====================
+LP.CharacterAdded:Connect(setupUltimateOverhead)
+if LP.Character then
+	task.spawn(setupUltimateOverhead, LP.Character)
+end
+
+createDraggableUI()
