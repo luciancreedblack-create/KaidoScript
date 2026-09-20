@@ -1,0 +1,476 @@
+-- [[ Ultimate Name Changer + Samsung Galaxy AI Pro (Fixed Modern Fly System) ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LP = Players.LocalPlayer
+
+-- ฟังก์ชันสร้างป้ายชื่อบนหัว
+local function createCustomNameTag(character)
+	local head = character:WaitForChild("Head", 5)
+	if not head then return end
+
+	if head:FindFirstChild("GlobalNameTag") then
+		head.GlobalNameTag:Destroy()
+	end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "GlobalNameTag"
+	billboard.Size = UDim2.new(0, 200, 0, 50)
+	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Adornee = head
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Name = "NameDisplay"
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = LP.DisplayName or LP.Name
+	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textLabel.TextSize = 16
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.Parent = billboard
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(0, 0, 0)
+	stroke.Thickness = 1.5
+	stroke.Parent = textLabel
+
+	billboard.Parent = head
+end
+
+-- สร้าง UI เมนูหลัก พร้อมปุ่มย่อและปุ่มกากบาทปิด
+local function createChangerUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("GlobalNameChangerGUI") then
+		playerGui.GlobalNameChangerGUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "GlobalNameChangerGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	-- กรอบเมนูหลัก
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 260, 0, 195)
+	frame.Position = UDim2.new(0.5, -130, 0.72, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	frame.BackgroundTransparency = 0.15
+	frame.Parent = screenGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(200, 200, 200)
+	stroke.Thickness = 1.5
+	stroke.Parent = frame
+
+	-- ปุ่มกากบาท (X) และปุ่มย่อ (-)
+	local closeMainBtn = Instance.new("TextButton")
+	closeMainBtn.Size = UDim2.new(0, 24, 0, 24)
+	closeMainBtn.Position = UDim2.new(1, -28, 0, 5)
+	closeMainBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+	closeMainBtn.Text = "X"
+	closeMainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeMainBtn.TextSize = 12
+	closeMainBtn.Font = Enum.Font.SourceSansBold
+	closeMainBtn.Parent = frame
+	Instance.new("UICorner", closeMainBtn).CornerRadius = UDim.new(0, 4)
+
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+	minimizeBtn.Position = UDim2.new(1, -56, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(180, 140, 0)
+	minimizeBtn.Text = "-"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextSize = 14
+	minimizeBtn.Font = Enum.Font.SourceSansBold
+	minimizeBtn.Parent = frame
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
+
+	local elementsToHide = {}
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.9, 0, 0.2, 0)
+	textBox.Position = UDim2.new(0.05, 0, 0.05, 0)
+	textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	textBox.PlaceholderText = "พิมพ์ชื่อที่ต้องการ..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextSize = 14
+	textBox.Font = Enum.Font.SourceSansBold
+	textBox.Parent = frame
+	Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+	table.insert(elementsToHide, textBox)
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.9, 0, 0.18, 0)
+	button.Position = UDim2.new(0.05, 0, 0.27, 0)
+	button.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+	button.Text = "เปลี่ยนชื่อ (อัปเดตป้ายบนหัว)"
+	button.TextColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextSize = 12
+	button.Font = Enum.Font.SourceSansBold
+	button.Parent = frame
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+	table.insert(elementsToHide, button)
+
+	local tutorialButton = Instance.new("TextButton")
+	tutorialButton.Size = UDim2.new(0.9, 0, 0.15, 0)
+	tutorialButton.Position = UDim2.new(0.05, 0, 0.47, 0)
+	tutorialButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+	tutorialButton.Text = "💡 วิธีใช้งาน / ตัวอย่าง"
+	tutorialButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tutorialButton.TextSize = 11
+	tutorialButton.Font = Enum.Font.SourceSansBold
+	tutorialButton.Parent = frame
+	Instance.new("UICorner", tutorialButton).CornerRadius = UDim.new(0, 6)
+	table.insert(elementsToHide, tutorialButton)
+
+	local groupButton = Instance.new("TextButton")
+	groupButton.Size = UDim2.new(0.9, 0, 0.15, 0)
+	groupButton.Position = UDim2.new(0.05, 0, 0.64, 0)
+	groupButton.BackgroundColor3 = Color3.fromRGB(50, 160, 90)
+	groupButton.Text = "🌐 เข้ากลุ่ม Community"
+	groupButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	groupButton.TextSize = 11
+	groupButton.Font = Enum.Font.SourceSansBold
+	groupButton.Parent = frame
+	Instance.new("UICorner", groupButton).CornerRadius = UDim.new(0, 6)
+	table.insert(elementsToHide, groupButton)
+
+	local aiButton = Instance.new("TextButton")
+	aiButton.Size = UDim2.new(0.9, 0, 0.17, 0)
+	aiButton.Position = UDim2.new(0.05, 0, 0.81, 0)
+	aiButton.BackgroundColor3 = Color3.fromRGB(20, 40, 160)
+	aiButton.Text = "🔷 SAMSUNG AI - ระบบเสียง & เสกทุกอย่าง"
+	aiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiButton.TextSize = 12
+	aiButton.Font = Enum.Font.SourceSansBold
+	aiButton.Parent = frame
+	Instance.new("UICorner", aiButton).CornerRadius = UDim.new(0, 6)
+	table.insert(elementsToHide, aiButton)
+
+	closeMainBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	local isMinimized = false
+	minimizeBtn.MouseButton1Click:Connect(function()
+		isMinimized = not isMinimized
+		if isMinimized then
+			minimizeBtn.Text = "+"
+			frame.Size = UDim2.new(0, 260, 0, 35)
+			for _, elem in ipairs(elementsToHide) do
+				elem.Visible = false
+			end
+		else
+			minimizeBtn.Text = "-"
+			frame.Size = UDim2.new(0, 260, 0, 195)
+			for _, elem in ipairs(elementsToHide) do
+				elem.Visible = true
+			end
+		end
+	end)
+
+	-- หน้าต่างแชท Samsung AI Pro
+	local aiFrame = Instance.new("Frame")
+	aiFrame.Size = UDim2.new(0, 320, 0, 360)
+	aiFrame.Position = UDim2.new(0.5, -160, 0.5, -180)
+	aiFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
+	aiFrame.BackgroundTransparency = 0.05
+	aiFrame.Visible = false
+	aiFrame.Parent = screenGui
+	Instance.new("UICorner", aiFrame).CornerRadius = UDim.new(0, 12)
+
+	local aiStroke = Instance.new("UIStroke")
+	aiStroke.Color = Color3.fromRGB(60, 120, 255)
+	aiStroke.Thickness = 2
+	aiStroke.Parent = aiFrame
+
+	local aiTitle = Instance.new("TextLabel")
+	aiTitle.Size = UDim2.new(1, 0, 0.13, 0)
+	aiTitle.BackgroundTransparency = 1
+	aiTitle.Text = "🔷 GALAXY AI (Voice & Omni-Mode)"
+	aiTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTitle.TextSize = 14
+	aiTitle.Font = Enum.Font.SourceSansBold
+	aiTitle.Parent = aiFrame
+
+	local chatScroll = Instance.new("ScrollingFrame")
+	chatScroll.Size = UDim2.new(0.9, 0, 0.53, 0)
+	chatScroll.Position = UDim2.new(0.05, 0, 0.14, 0)
+	chatScroll.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+	chatScroll.BorderSizePixel = 0
+	chatScroll.CanvasSize = UDim2.new(0, 0, 3, 0)
+	chatScroll.Parent = aiFrame
+	Instance.new("UICorner", chatScroll).CornerRadius = UDim.new(0, 8)
+
+	local chatLog = Instance.new("TextLabel")
+	chatLog.Size = UDim2.new(0.95, 0, 1, 0)
+	chatLog.Position = UDim2.new(0.025, 0, 0, 0)
+	chatLog.BackgroundTransparency = 1
+	chatLog.Text = "🤖 พร้อมรับคำสั่งเสียงและข้อความแล้วครับ! (ระบบบินเวอร์ชันใหม่ลอยได้ชัวร์)"
+	chatLog.TextColor3 = Color3.fromRGB(220, 230, 255)
+	chatLog.TextSize = 12
+	chatLog.Font = Enum.Font.SourceSans
+	chatLog.TextWrapped = true
+	chatLog.TextXAlignment = Enum.TextXAlignment.Left
+	chatLog.TextYAlignment = Enum.TextYAlignment.Top
+	chatLog.Parent = chatScroll
+
+	local aiTextBox = Instance.new("TextBox")
+	aiTextBox.Size = UDim2.new(0.68, 0, 0.12, 0)
+	aiTextBox.Position = UDim2.new(0.05, 0, 0.70, 0)
+	aiTextBox.BackgroundColor3 = Color3.fromRGB(35, 45, 65)
+	aiTextBox.PlaceholderText = "พิมพ์หรือใช้ปุ่มไมค์พูด..."
+	aiTextBox.Text = ""
+	aiTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTextBox.TextSize = 12
+	aiTextBox.Font = Enum.Font.SourceSans
+	aiTextBox.Parent = aiFrame
+	Instance.new("UICorner", aiTextBox).CornerRadius = UDim.new(0, 6)
+
+	local sendBtn = Instance.new("TextButton")
+	sendBtn.Size = UDim2.new(0.19, 0, 0.12, 0)
+	sendBtn.Position = UDim2.new(0.76, 0, 0.70, 0)
+	sendBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 255)
+	sendBtn.Text = "เสกคำสั่ง"
+	sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	sendBtn.TextSize = 12
+	sendBtn.Font = Enum.Font.SourceSansBold
+	sendBtn.Parent = aiFrame
+	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 6)
+
+	local voiceBtn = Instance.new("TextButton")
+	voiceBtn.Size = UDim2.new(0.9, 0, 0.1, 0)
+	voiceBtn.Position = UDim2.new(0.05, 0, 0.84, 0)
+	voiceBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 140)
+	voiceBtn.Text = "🎙️ กดเพื่อพูด (Voice Input)"
+	voiceBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	voiceBtn.TextSize = 12
+	voiceBtn.Font = Enum.Font.SourceSansBold
+	voiceBtn.Parent = aiFrame
+	Instance.new("UICorner", voiceBtn).CornerRadius = UDim.new(0, 6)
+
+	local closeAiBtn = Instance.new("TextButton")
+	closeAiBtn.Size = UDim2.new(0.08, 0, 0.09, 0)
+	closeAiBtn.Position = UDim2.new(0.88, 0, 0.02, 0)
+	closeAiBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+	closeAiBtn.Text = "X"
+	closeAiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeAiBtn.TextSize = 12
+	closeAiBtn.Font = Enum.Font.SourceSansBold
+	closeAiBtn.Parent = aiFrame
+	Instance.new("UICorner", closeAiBtn).CornerRadius = UDim.new(0, 4)
+
+	-- หน้าต่างวิธีใช้งาน
+	local tutFrame = Instance.new("Frame")
+	tutFrame.Size = UDim2.new(0, 280, 0, 180)
+	tutFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+	tutFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	tutFrame.BackgroundTransparency = 0.05
+	tutFrame.Visible = false
+	tutFrame.Parent = screenGui
+	Instance.new("UICorner", tutFrame).CornerRadius = UDim.new(0, 10)
+
+	local tutTitle = Instance.new("TextLabel")
+	tutTitle.Size = UDim2.new(1, 0, 0.2, 0)
+	tutTitle.BackgroundTransparency = 1
+	tutTitle.Text = "📖 วิธีใช้งานระบบทั้งหมด"
+	tutTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+	tutTitle.TextSize = 14
+	tutTitle.Font = Enum.Font.SourceSansBold
+	tutTitle.Parent = tutFrame
+
+	local tutDesc = Instance.new("TextLabel")
+	tutDesc.Size = UDim2.new(0.9, 0, 0.55, 0)
+	tutDesc.Position = UDim2.new(0.05, 0, 0.2, 0)
+	tutDesc.BackgroundTransparency = 1
+	tutDesc.Text = "• พิมพ์หรือพูดคำว่า 'บิน' เพื่อเปิดระบบบินแบบใหม่ล่าสุด\n• ใช้ปุ่ม (-) ย่อ และ (X) เพื่อปิดเมนูหลักได้ทันที"
+	tutDesc.TextColor3 = Color3.fromRGB(240, 240, 240)
+	tutDesc.TextSize = 12
+	tutDesc.Font = Enum.Font.SourceSans
+	tutDesc.TextWrapped = true
+	tutDesc.Parent = tutFrame
+
+	local closeTutBtn = Instance.new("TextButton")
+	closeTutBtn.Size = UDim2.new(0.6, 0, 0.18, 0)
+	closeTutBtn.Position = UDim2.new(0.2, 0, 0.78, 0)
+	closeTutBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	closeTutBtn.Text = "ปิดหน้าต่าง"
+	closeTutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeTutBtn.TextSize = 13
+	closeTutBtn.Font = Enum.Font.SourceSansBold
+	closeTutBtn.Parent = tutFrame
+	Instance.new("UICorner", closeTutBtn).CornerRadius = UDim.new(0, 6)
+
+	-- ==========================================
+	-- ระบบบินใหม่ล่าสุด รองรับฟิสิกส์ Roblox ปัจจุบัน (LinearVelocity & AlignOrientation)
+	-- ==========================================
+	local function triggerFly()
+		pcall(function()
+			local char = LP.Character
+			if not char then return end
+			local root = char:FindFirstChild("HumanoidRootPart")
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if not root or not hum then return end
+
+			-- ถ้ามีระบบบินอยู่แล้ว ให้ทำการปิด (Toggle Off)
+			if char:FindFirstChild("ModernFlyAttachment") then
+				char.ModernFlyAttachment:Destroy()
+				if char:FindFirstChild("HumanoidRootPart") then
+					for _, v in pairs(char.HumanoidRootPart:GetChildren()) do
+						if v.Name == "GalaxyLinearVel" or v.Name == "GalaxyAlignGyro" or v.Name == "GalaxyAttach" then
+							v:Destroy()
+						end
+					end
+				end
+				hum.PlatformStand = false
+				return
+			end
+
+			hum.PlatformStand = true
+
+			local attachment = Instance.new("Attachment")
+			attachment.Name = "GalaxyAttach"
+			attachment.Parent = root
+
+			local linearVel = Instance.new("LinearVelocity")
+			linearVel.Name = "GalaxyLinearVel"
+			linearVel.Attachment0 = attachment
+			linearVel.MaxForce = math.huge
+			linearVel.VectorVelocity = Vector3.new(0, 0, 0)
+			linearVel.RelativeTo = Enum.ActuatorRelativeTo.World
+			linearVel.Parent = root
+
+			local alignGyro = Instance.new("AlignOrientation")
+			alignGyro.Name = "GalaxyAlignGyro"
+			alignGyro.Attachment0 = attachment
+			alignGyro.MaxTorque = math.huge
+			alignGyro.Responsiveness = 200
+			alignGyro.Parent = root
+
+			task.spawn(function()
+				while char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("GalaxyLinearVel") do
+					local cam = workspace.CurrentCamera
+					local speed = 60
+					local moveV = Vector3.new(0, 0, 0)
+
+					if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveV = moveV + cam.CFrame.LookVector end
+					if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveV = moveV - cam.CFrame.LookVector end
+					if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveV = moveV - cam.CFrame.RightVector end
+					if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveV = moveV + cam.CFrame.RightVector end
+
+					linearVel.VectorVelocity = moveV * speed
+					alignGyro.CFrame = cam.CFrame
+					task.wait()
+				end
+				if hum then
+					hum.PlatformStand = false
+				end
+			end)
+		end)
+	end
+
+	-- ฟังก์ชันประมวลผล AI
+	local function processAICommand(rawText)
+		if rawText == "" then return end
+		chatLog.Text = chatLog.Text .. "\n\n👤 คำสั่ง: " .. rawText
+		aiTextBox.Text = ""
+
+		task.delay(0.3, function()
+			local lower = rawText:lower()
+			local reply = "Samsung AI: ประมวลผลคำสั่งสำเร็จ!"
+
+			if lower:find("บิน") or lower:find("fly") or lower:find("ลอย") then
+				triggerFly()
+				reply = "Samsung AI: เปิด/ปิด ระบบบินเวอร์ชันใหม่สำเร็จ! ใช้ W A S D ควบคุมทิศทาง"
+			elseif lower:find("เร็ว") or lower:find("speed") or lower:find("วิ่ง") then
+				pcall(function() LP.Character.Humanoid.WalkSpeed = 100 end)
+				reply = "Samsung AI: เร่งความเร็วสำเร็จ!"
+			elseif lower:find("อมตะ") or lower:find("เลือด") or lower:find("god") then
+				pcall(function() LP.Character.Humanoid.MaxHealth = math.huge LP.Character.Humanoid.Health = math.huge end)
+				reply = "Samsung AI: เปิดโหมดอมตะสำเร็จ!"
+			else
+				reply = "Samsung AI: จัดการคำสั่ง '" .. rawText .. "' เรียบร้อย!"
+			end
+
+			chatLog.Text = chatLog.Text .. "\n\n🤖 " .. reply
+		end)
+	end
+
+	tutorialButton.MouseButton1Click:Connect(function() tutFrame.Visible = not tutFrame.Visible end)
+	closeTutBtn.MouseButton1Click:Connect(function() tutFrame.Visible = false end)
+	aiButton.MouseButton1Click:Connect(function() aiFrame.Visible = not aiFrame.Visible end)
+	closeAiBtn.MouseButton1Click:Connect(function() aiFrame.Visible = false end)
+
+	sendBtn.MouseButton1Click:Connect(function() processAICommand(aiTextBox.Text) end)
+
+	voiceBtn.MouseButton1Click:Connect(function()
+		voiceBtn.Text = "🎙️ กำลังฟังเสียงพูด..."
+		voiceBtn.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+		task.delay(1.2, function()
+			local simulatedVoiceCommands = {"ขอสคริปต์บินหน่อย", "บินให้ดูหน่อย"}
+			local chosenCommand = simulatedVoiceCommands[math.random(1, #simulatedVoiceCommands)]
+			voiceBtn.Text = "🎙️ กดเพื่อพูด (Voice Input)"
+			voiceBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 140)
+			processAICommand(chosenCommand)
+		end)
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		local newName = textBox.Text
+		if newName ~= "" and LP.Character then
+			local head = LP.Character:FindFirstChild("Head")
+			if head then
+				local tag = head:FindFirstChild("GlobalNameTag")
+				if tag and tag:FindFirstChild("NameDisplay") then
+					tag.NameDisplay.Text = newName
+				end
+			end
+			local humanoid = LP.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				pcall(function() humanoid.DisplayName = newName end)
+			end
+		end
+	end)
+
+	groupButton.MouseButton1Click:Connect(function()
+		pcall(function()
+			local groupId = 0
+			if groupId > 0 then MarketplaceService:PromptGroupJoin(LP, groupId) end
+		end)
+	end)
+
+	-- ระบบลากเมนู
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true; dragStart = input.Position; startPos = frame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+LP.CharacterAdded:Connect(function(char)
+	task.wait(0.5)
+	createCustomNameTag(char)
+end)
+
+if LP.Character then
+	createCustomNameTag(LP.Character)
+end
+
+createChangerUI()
