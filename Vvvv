@@ -1,0 +1,50 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+
+local remotes = ReplicatedStorage:FindFirstChild("AI_Remotes")
+if not remotes then
+	remotes = Instance.new("Folder")
+	remotes.Name = "AI_Remotes"
+	remotes.Parent = ReplicatedStorage
+end
+
+local promptEvent = remotes:FindFirstChild("PromptPurchaseEvent")
+if not promptEvent then
+	promptEvent = Instance.new("RemoteEvent")
+	promptEvent.Name = "PromptPurchaseEvent"
+	promptEvent.Parent = remotes
+end
+
+-- ⚠️ นำ Product ID ของ 1 Robux ที่สร้างในเว็บ Roblox มาใส่แทนเลข 0 ตรงนี้
+local PRODUCT_ID = 0 
+
+promptEvent.OnServerEvent:Connect(function(player)
+	if player.Name == "RTKT995" or player.DisplayName == "RTKT995" then
+		return -- บัญชี RTKT995 เข้าฟรีไม่ต้องจ่าย
+	end
+	
+	if PRODUCT_ID > 0 then
+		pcall(function()
+			MarketplaceService:PromptProductPurchase(player, PRODUCT_ID)
+		end)
+	else
+		warn("⚠️ ยังไม่ได้ใส่ Product ID ของ 1 Robux ในสคริปต์ฝั่ง Server!")
+	end
+end)
+
+-- ระบบหักเงินจริงและออกใบเสร็จเข้าบัญชีเจ้าของเกม (RTKT995)
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	if player and receiptInfo.ProductId == PRODUCT_ID then
+		local paidVal = player:FindFirstChild("AI_PaidStatus")
+		if not paidVal then
+			paidVal = Instance.new("BoolValue")
+			paidVal.Name = "AI_PaidStatus"
+			paidVal.Value = true
+			paidVal.Parent = player
+		end
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
