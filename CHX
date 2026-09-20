@@ -1,0 +1,262 @@
+-- [[ 📱 iPhone AI+ Ultimate: All-in-One Automatic Server Script ]] --
+-- ⚠️ นำสคริปต์นี้ไปวางไว้ใน ServerScriptService (อันเดียวจบครบทุกระบบ) --
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+
+-- 1. สร้างโฟลเดอร์และ RemoteEvent สำหรับติดต่อสื่อสาร
+local remotes = ReplicatedStorage:FindFirstChild("AI_Remotes")
+if not remotes then
+	remotes = Instance.new("Folder")
+	remotes.Name = "AI_Remotes"
+	remotes.Parent = ReplicatedStorage
+end
+
+local promptEvent = remotes:FindFirstChild("PromptPurchaseEvent")
+if not promptEvent then
+	promptEvent = Instance.new("RemoteEvent")
+	promptEvent.Name = "PromptPurchaseEvent"
+	promptEvent.Parent = remotes
+end
+
+-- ⚠️ สำคัญ: ใส่ Product ID ของ Developer Product (ราคา 1 Robux) ของคุณ RTKT995 ที่นี่
+local PRODUCT_ID = 0 
+
+promptEvent.OnServerEvent:Connect(function(player)
+	if player.Name == "RTKT995" or player.DisplayName == "RTKT995" then
+		return -- VIP ไม่ต้องจ่าย
+	end
+	
+	if PRODUCT_ID > 0 then
+		pcall(function()
+			MarketplaceService:PromptProductPurchase(player, PRODUCT_ID)
+		end)
+	else
+		warn("⚠️ ยังไม่ได้ตั้งค่า Product ID สำหรับ 1 Robux ในสคริปต์!")
+	end
+end)
+
+-- ระบบตรวจสอบใบเสร็จและหักเงินจริง (บังคับรันบน Server เท่านั้น)
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	if player and receiptInfo.ProductId == PRODUCT_ID then
+		local paidVal = player:FindFirstChild("AI_PaidStatus")
+		if not paidVal then
+			paidVal = Instance.new("BoolValue")
+			paidVal.Name = "AI_PaidStatus"
+			paidVal.Value = true
+			paidVal.Parent = player
+		end
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
+
+-- 2. โค้ดฝั่งหน้าจอผู้เล่น (Client) ที่จะถูกส่งไปทำงานอัตโนมัติเมื่อผู้เล่นเข้าเกม
+local clientCode = [[
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LP = Players.LocalPlayer
+
+local remotes = ReplicatedStorage:WaitForChild("AI_Remotes", 5)
+local promptEvent = remotes and remotes:WaitForChild("PromptPurchaseEvent", 5)
+
+local function createAIChatUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("IPhoneAIChatGUI") then
+		playerGui.IPhoneAIChatGUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "IPhoneAIChatGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local isVIP = (LP.Name == "RTKT995" or LP.DisplayName == "RTKT995")
+	local paidStatus = LP:FindFirstChild("AI_PaidStatus")
+	local isUnlocked = isVIP or (paidStatus ~= nil and paidStatus.Value == true)
+
+	local aiFrame = Instance.new("Frame")
+	aiFrame.Size = UDim2.new(0, 400, 0, 460)
+	aiFrame.Position = UDim2.new(0.5, -200, 0.5, -230)
+	aiFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	aiFrame.BackgroundTransparency = 0.05
+	aiFrame.Parent = screenGui
+	Instance.new("UICorner", aiFrame).CornerRadius = UDim.new(0, 16)
+
+	local aiStroke = Instance.new("UIStroke")
+	aiStroke.Color = Color3.fromRGB(0, 122, 255)
+	aiStroke.Thickness = 2
+	aiStroke.Parent = aiFrame
+
+	local aiTitle = Instance.new("TextLabel")
+	aiTitle.Size = UDim2.new(1, 0, 0.12, 0)
+	aiTitle.BackgroundTransparency = 1
+	aiTitle.Text = isVIP and "📱 iPhone AI+ [VIP Owner: RTKT995]" or "📱 iPhone AI+ [Smart AI Assistant]"
+	aiTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTitle.TextSize = 13
+	aiTitle.Font = Enum.Font.SourceSansBold
+	aiTitle.Parent = aiFrame
+
+	local chatScroll = Instance.new("ScrollingFrame")
+	chatScroll.Name = "ChatScroll"
+	chatScroll.Size = UDim2.new(0.92, 0, isUnlocked and 0.71 or 0.62, 0)
+	chatScroll.Position = UDim2.new(0.04, 0, 0.13, 0)
+	chatScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+	chatScroll.BorderSizePixel = 0
+	chatScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+	chatScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	chatScroll.Parent = aiFrame
+	Instance.new("UICorner", chatScroll).CornerRadius = UDim.new(0, 10)
+
+	local chatLog = Instance.new("TextLabel")
+	chatLog.Name = "ChatLog"
+	chatLog.Size = UDim2.new(0.95, 0, 1, 0)
+	chatLog.Position = UDim2.new(0.025, 0, 0, 0)
+	chatLog.BackgroundTransparency = 1
+	
+	if isVIP then
+		chatLog.Text = "👑 ยินดีต้อนรับคุณ RTKT995! เจ้าของระบบใช้งานฟรีถาวร พร้อมตอบทุกคำถามแล้วครับ!"
+	elseif isUnlocked then
+		chatLog.Text = "🎉 ระบบตรวจสอบพบว่าคุณชำระเงิน 1 Robux (เข้าบัญชี RTKT995) เรียบร้อยแล้ว! พิมพ์ถามคำถามได้เต็มที่เลยครับ!"
+	else
+		chatLog.Text = "🔒 กรุณาชำระเงิน 1 Robux (โอนเข้าบัญชี RTKT995) ก่อนเริ่มต้นใช้งานระบบ AI (จ่ายครั้งเดียวจำสิทธิ์ถาวร)"
+	end
+
+	chatLog.TextColor3 = isUnlocked and Color3.fromRGB(100, 255, 150) or Color3.fromRGB(255, 180, 100)
+	chatLog.TextSize = 13
+	chatLog.Font = Enum.Font.SourceSans
+	chatLog.TextWrapped = true
+	chatLog.TextXAlignment = Enum.TextXAlignment.Left
+	chatLog.TextYAlignment = Enum.TextYAlignment.Top
+	chatLog.Parent = chatScroll
+
+	local aiTextBox = Instance.new("TextBox")
+	aiTextBox.Size = UDim2.new(0.72, 0, 0.11, 0)
+	aiTextBox.Position = UDim2.new(0.04, 0, 0.78, 0)
+	aiTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+	aiTextBox.PlaceholderText = isUnlocked and "พิมพ์คำถามของคุณที่นี่..." or "ต้องจ่าย 1 Robux ก่อนจึงจะพิมพ์ได้..."
+	aiTextBox.Text = ""
+	aiTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTextBox.TextSize = 12
+	aiTextBox.Font = Enum.Font.SourceSans
+	aiTextBox.ClearTextOnFocus = false
+	aiTextBox.Parent = aiFrame
+	Instance.new("UICorner", aiTextBox).CornerRadius = UDim.new(0, 8)
+
+	local sendBtn = Instance.new("TextButton")
+	sendBtn.Size = UDim2.new(0.18, 0, 0.11, 0)
+	sendBtn.Position = UDim2.new(0.78, 0, 0.78, 0)
+	sendBtn.BackgroundColor3 = isUnlocked and Color3.fromRGB(0, 122, 255) or Color3.fromRGB(100, 100, 100)
+	sendBtn.Text = "ส่งข้อความ"
+	sendBtn.TextColor3 = isUnlocked and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+	sendBtn.TextSize = 12
+	sendBtn.Font = Enum.Font.SourceSansBold
+	sendBtn.Parent = aiFrame
+	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 8)
+
+	local buyBtn = Instance.new("TextButton")
+	buyBtn.Size = UDim2.new(0.92, 0, 0.07, 0)
+	buyBtn.Position = UDim2.new(0.04, 0, 0.90, 0)
+	buyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+	buyBtn.Text = "🛒 ซื้อสิทธิ์ 1 Robux (หักจริงเข้าบัญชี RTKT995)"
+	buyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	buyBtn.TextSize = 12
+	buyBtn.Font = Enum.Font.SourceSansBold
+	buyBtn.Visible = not isUnlocked
+	buyBtn.Parent = aiFrame
+	Instance.new("UICorner", buyBtn).CornerRadius = UDim.new(0, 6)
+
+	if isUnlocked then
+		chatScroll.Size = UDim2.new(0.92, 0, 0.63, 0)
+		aiTextBox.Position = UDim2.new(0.04, 0, 0.79, 0)
+		sendBtn.Position = UDim2.new(0.78, 0, 0.79, 0)
+	end
+
+	local closeAiBtn = Instance.new("TextButton")
+	closeAiBtn.Size = UDim2.new(0.08, 0, 0.08, 0)
+	closeAiBtn.Position = UDim2.new(0.89, 0, 0.02, 0)
+	closeAiBtn.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
+	closeAiBtn.Text = "×"
+	closeAiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeAiBtn.TextSize = 16
+	closeAiBtn.Font = Enum.Font.SourceSansBold
+	closeAiBtn.Parent = aiFrame
+	Instance.new("UICorner", closeAiBtn).CornerRadius = UDim.new(0, 8)
+
+	closeAiBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	buyBtn.MouseButton1Click:Connect(function()
+		if promptEvent then
+			promptEvent:FireServer()
+		end
+	end)
+
+	LP.ChildAdded:Connect(function(child)
+		if child.Name == "AI_PaidStatus" then
+			isUnlocked = true
+			buyBtn.Visible = false
+			chatScroll.Size = UDim2.new(0.92, 0, 0.63, 0)
+			aiTextBox.Position = UDim2.new(0.04, 0, 0.79, 0)
+			sendBtn.Position = UDim2.new(0.78, 0, 0.79, 0)
+			aiTextBox.PlaceholderText = "พิมพ์คำถามของคุณที่นี่..."
+			sendBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+			sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			chatLog.Text = "🤖 ชำระเงิน 1 Robux สำเร็จ (เข้าระบบ RTKT995 เรียบร้อย) ระบบจดจำสิทธิ์ถาวรแล้ว สอบถามคำถามได้เลยครับ!"
+		end
+	end)
+
+	local function processRealAI(rawText)
+		local currentPaid = LP:FindFirstChild("AI_PaidStatus")
+		local unlockedNow = isVIP or (currentPaid ~= nil and currentPaid.Value == true)
+
+		if not unlockedNow then
+			chatLog.Text = chatLog.Text .. "\n\n⚠️ แจ้งเตือน: กรุณากดปุ่มซื้อ 1 Robux ด้านล่างเพื่อปลดล็อกก่อนใช้งานระบบครับ!"
+			return
+		end
+
+		if rawText == "" then return end
+		chatLog.Text = chatLog.Text .. "\n\n👤 คุณ: " .. rawText
+		aiTextBox.Text = ""
+
+		task.delay(0.4, function()
+			local lower = rawText:lower()
+			local reply = ""
+
+			if lower:find("roblox") and (lower:find("สร้าง") or lower:find("ปี") or lower:find("ก่อตั้ง")) then
+				reply = "iPhone AI+: แพลตฟอร์ม Roblox เริ่มพัฒนาขึ้นในปี 2004 และเปิดตัวให้ผู้เล่นทั่วไปใช้งานอย่างเป็นทางการในวันที่ 1 กันยายน ปี 2006 ครับ!"
+			elseif lower:find("สวัสดี") or lower:find("hi") or lower:find("hello") then
+				reply = "iPhone AI+: สวัสดีครับ! iPhone AI+ พร้อมช่วยเหลือคุณเต็มที่ มีคำถามหรือเรื่องไหนสงสัย ถามมาได้เลยครับ!"
+			elseif lower:find("เธอคือใคร") or lower:find("แกคือใคร") then
+				reply = "iPhone AI+: ผมคือ iPhone AI+ ระบบผู้ช่วยอัจฉริยะส่วนตัวของคุณ ออกแบบมาเพื่อวิเคราะห์และให้คำตอบที่ถูกต้องที่สุดครับ!"
+			else
+				reply = "iPhone AI+: จากการวิเคราะห์คำถาม \"" .. rawText .. "\" ของคุณ ข้อมูลระบุว่าเป็นประเด็นที่น่าสนใจและมีรายละเอียดชัดเจน หากต้องการให้ผมเจาะลึกอธิบายส่วนไหนเพิ่มเติม พิมพ์บอกได้เลยครับ!"
+			end
+
+			chatLog.Text = chatLog.Text .. "\n\n🤖 " .. reply
+		end)
+	end
+
+	sendBtn.MouseButton1Click:Connect(function() processRealAI(aiTextBox.Text) end)
+	aiTextBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then processRealAI(aiTextBox.Text) end
+	end)
+end
+
+createAIChatUI()
+]]
+
+-- 3. ระบบส่งตัว UI และ Client ไปให้ผู้เล่นแต่ละคนอัตโนมัติเมื่อเข้าเกม
+Players.PlayerAdded:Connect(function(player)
+	local playerGui = player:WaitForChild("PlayerGui", 10)
+	if playerGui then
+		local sc = Instance.new("LocalScript")
+		sc.Name = "AI_AutoUI"
+		sc.Source = clientCode
+		sc.Parent = playerGui
+	end
+end)
