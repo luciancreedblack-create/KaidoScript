@@ -1,0 +1,117 @@
+-- [[ Advanced Global Name Replicator for Roblox ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+-- ฟังก์ชันบังคับซิงค์ชื่อให้คนอื่นเห็นผ่านทุกช่องทางที่เกมอนุญาต
+local function forceSyncGlobalName(newName)
+	local char = LP.Character
+	if not char then return end
+
+	-- 1. เปลี่ยนผ่าน Humanoid DisplayName (วิธีหลักที่ระบบ Roblox รองรับให้คนอื่นเห็น)
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		pcall(function()
+			humanoid.DisplayName = newName
+		end)
+	end
+
+	-- 2. ค้นหาและอัปเดตก้อนป้ายชื่อมาตรฐานของเกม (NameTag) ที่ติดมากับตัวละคร
+	local head = char:FindFirstChild("Head")
+	if head then
+		for _, descendant in ipairs(head:GetDescendants()) do
+			if descendant:IsA("TextLabel") and (descendant.Name:lower():find("name") or descendant.Name:lower():find("display")) then
+				descendant.Text = newName
+			end
+		end
+	end
+
+	-- 3. ส่งสัญญาณแจ้งเตือนระบบตัวละคร (Force Replication Update)
+	pcall(function()
+		if char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.AssemblyLinearVelocity = char.HumanoidRootPart.AssemblyLinearVelocity
+		end
+	end)
+end
+
+-- สร้าง UI เมนูพิมพ์เปลี่ยนชื่อ (ลากย้ายตำแหน่งได้)
+local function createChangerUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("ForcedGlobalNameUI") then
+		playerGui.ForcedGlobalNameUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "ForcedGlobalNameUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 260, 0, 90)
+	frame.Position = UDim2.new(0.5, -130, 0.8, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	frame.BackgroundTransparency = 0.15
+	frame.Parent = screenGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(200, 200, 200)
+	stroke.Thickness = 1.5
+	stroke.Parent = frame
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.9, 0, 0.4, 0)
+	textBox.Position = UDim2.new(0.05, 0, 0.1, 0)
+	textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	textBox.PlaceholderText = "พิมพ์ชื่อให้ทุกคนเห็น..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextSize = 16
+	textBox.Font = Enum.Font.SourceSansBold
+	textBox.Parent = frame
+	Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.9, 0, 0.35, 0)
+	button.Position = UDim2.new(0.05, 0, 0.55, 0)
+	button.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+	button.Text = "เปลี่ยนชื่อ (บังคับให้คนอื่นเห็น)"
+	button.TextColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextSize = 14
+	button.Font = Enum.Font.SourceSansBold
+	button.Parent = frame
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+
+	-- ปุ่มกดเปลี่ยนชื่อ
+	button.MouseButton1Click:Connect(function()
+		local newName = textBox.Text
+		if newName ~= "" then
+			forceSyncGlobalName(newName)
+		end
+	end)
+
+	-- ระบบลาก UI ย้ายตำแหน่ง
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+createChangerUI()
