@@ -1,0 +1,156 @@
+-- [[ iPhone AI+ Pro (Pure Independent AI Chat System) ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+local function createAIChatUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("IPhoneAIChatGUI") then
+		playerGui.IPhoneAIChatGUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "IPhoneAIChatGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	-- หน้าต่างแชท iPhone AI+ (ดีไซน์หรูหรา ลอยตัวอิสระ)
+	local aiFrame = Instance.new("Frame")
+	aiFrame.Size = UDim2.new(0, 400, 0, 460)
+	aiFrame.Position = UDim2.new(0.5, -200, 0.5, -230)
+	aiFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	aiFrame.BackgroundTransparency = 0.05
+	aiFrame.Parent = screenGui
+	Instance.new("UICorner", aiFrame).CornerRadius = UDim.new(0, 16)
+
+	local aiStroke = Instance.new("UIStroke")
+	aiStroke.Color = Color3.fromRGB(0, 122, 255)
+	aiStroke.Thickness = 2
+	aiStroke.Parent = aiFrame
+
+	local aiTitle = Instance.new("TextLabel")
+	aiTitle.Size = UDim2.new(1, 0, 0.12, 0)
+	aiTitle.BackgroundTransparency = 1
+	aiTitle.Text = "📱 iPhone AI+ [Infinite IQ x99999999++]"
+	aiTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTitle.TextSize = 13
+	aiTitle.Font = Enum.Font.SourceSansBold
+	aiTitle.Parent = aiFrame
+
+	local chatScroll = Instance.new("ScrollingFrame")
+	chatScroll.Name = "ChatScroll"
+	chatScroll.Size = UDim2.new(0.92, 0, 0.62, 0)
+	chatScroll.Position = UDim2.new(0.04, 0, 0.13, 0)
+	chatScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+	chatScroll.BorderSizePixel = 0
+	chatScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+	chatScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	chatScroll.Parent = aiFrame
+	Instance.new("UICorner", chatScroll).CornerRadius = UDim.new(0, 10)
+
+	local chatLog = Instance.new("TextLabel")
+	chatLog.Name = "ChatLog"
+	chatLog.Size = UDim2.new(0.95, 0, 1, 0)
+	chatLog.Position = UDim2.new(0.025, 0, 0, 0)
+	chatLog.BackgroundTransparency = 1
+	chatLog.Text = "🤖 สวัสดีครับ! ผมคือ iPhone AI+ ผู้ช่วยอัจฉริยะระบบ Infinite IQ x99999999++ ฉลาดที่สุดในโลก พร้อมตอบทุกคำถาม สอนวิธีเล่นเกม เทคนิคขั้นเทพ หรือคุยเล่นได้ทุกเรื่องอย่างเข้าใจง่ายที่สุด ถามมาได้เลยครับ!"
+	chatLog.TextColor3 = Color3.fromRGB(235, 235, 245)
+	chatLog.TextSize = 13
+	chatLog.Font = Enum.Font.SourceSans
+	chatLog.TextWrapped = true
+	chatLog.TextXAlignment = Enum.TextXAlignment.Left
+	chatLog.TextYAlignment = Enum.TextYAlignment.Top
+	chatLog.Parent = chatScroll
+
+	local aiTextBox = Instance.new("TextBox")
+	aiTextBox.Size = UDim2.new(0.72, 0, 0.11, 0)
+	aiTextBox.Position = UDim2.new(0.04, 0, 0.78, 0)
+	aiTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+	aiTextBox.PlaceholderText = "พิมพ์ถามวิธีเล่นเกม หรือพูดคุยทั่วไป..."
+	aiTextBox.Text = ""
+	aiTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTextBox.TextSize = 12
+	aiTextBox.Font = Enum.Font.SourceSans
+	aiTextBox.Parent = aiFrame
+	Instance.new("UICorner", aiTextBox).CornerRadius = UDim.new(0, 8)
+
+	local sendBtn = Instance.new("TextButton")
+	sendBtn.Size = UDim2.new(0.18, 0, 0.11, 0)
+	sendBtn.Position = UDim2.new(0.78, 0, 0.78, 0)
+	sendBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+	sendBtn.Text = "ส่งข้อความ"
+	sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	sendBtn.TextSize = 12
+	sendBtn.Font = Enum.Font.SourceSansBold
+	sendBtn.Parent = aiFrame
+	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 8)
+
+	local closeAiBtn = Instance.new("TextButton")
+	closeAiBtn.Size = UDim2.new(0.08, 0, 0.08, 0)
+	closeAiBtn.Position = UDim2.new(0.89, 0, 0.02, 0)
+	closeAiBtn.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
+	closeAiBtn.Text = "×"
+	closeAiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeAiBtn.TextSize = 16
+	closeAiBtn.Font = Enum.Font.SourceSansBold
+	closeAiBtn.Parent = aiFrame
+	Instance.new("UICorner", closeAiBtn).CornerRadius = UDim.new(0, 8)
+
+	closeAiBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	-- ฟังก์ชันประมวลผล iPhone AI+ ขั้นสูง (Infinite IQ)
+	local function processIPhoneAI(rawText)
+		if rawText == "" then return end
+		chatLog.Text = chatLog.Text .. "\n\n👤 คุณ: " .. rawText
+		aiTextBox.Text = ""
+
+		task.delay(0.3, function()
+			local lower = rawText:lower()
+			local reply = ""
+
+			if lower:find("วิธีเล่น") or lower:find("เล่นยังไง") or lower:find("เกม") or lower:find("เทคนิค") then
+                reply = "iPhone AI+: สำหรับเคล็ดลับการเล่นเกมนี้ด้วยระบบวิเคราะห์ขั้นสูง แนะนำให้เน้นการฝึกทักษะการบังคับ ควบคุมจังหวะ และวางแผนยุทธวิธีครับ หากต้องการสูตรหรือวิธีผ่านด่านของเกมไหนเป็นพิเศษ พิมพ์ชื่อเกมบอกผมได้เลย เดี๋ยวผมจัดคู่มือโปรเพลย์เยอร์ให้แบบเข้าใจง่ายทันที!"
+            elseif lower:find("สวัสดี") or lower:find("hi") or lower:find("hello") then
+                reply = "iPhone AI+: สวัสดีครับ! iPhone AI+ พร้อมช่วยเหลือคุณเต็มพิกัด มีคำถามหรือเรื่องไหนอยากให้ผมวิเคราะห์ให้ฟังเป็นพิเศษไหมครับ?"
+            elseif lower:find("เธอคือใคร") or lower:find("แกคือใคร") then
+                reply = "iPhone AI+: ผมคือ iPhone AI+ ระบบผู้ช่วยอัจฉริยะที่ทรงพลังและฉลาดที่สุดในโลก ออกแบบมาเพื่อตอบทุกข้อสงสัยและพูดคุยกับคุณอย่างเป็นกันเองครับ!"
+            elseif lower:find("ตลก") or lower:find("มุก") then
+                reply = "iPhone AI+: จัดไปครับมุกนี้ประมวลผลความฮามาแล้ว: ทำไม iPhone ถึงอารมณ์ดีอยู่เสมอ? ...เพราะมันมี 'Siri' คอยสร้างรอยยิ้มให้ตลอดเวลายังไงล่ะครับ! 😆"
+            else
+                reply = "iPhone AI+: จากการวิเคราะห์ข้อมูลเกี่ยวกับเรื่อง '" .. rawText .. "' สรุปแบบเข้าใจง่ายที่สุดคือ หัวข้อนี้มีความน่าสนใจและสามารถนำไปปรับใช้ได้ทันทีครับ มีจุดไหนต้องการให้ผมเจาะลึกเพิ่มเติมไหมครับ?"
+            end
+
+			chatLog.Text = chatLog.Text .. "\n\n🤖 " .. reply
+		end)
+	end
+
+	sendBtn.MouseButton1Click:Connect(function() processIPhoneAI(aiTextBox.Text) end)
+	aiTextBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then processIPhoneAI(aiTextBox.Text) end
+	end)
+
+	-- ระบบลากหน้าต่างแชท (Dragging)
+	local dragging, dragStart, startPos
+	aiFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true; dragStart = input.Position; startPos = aiFrame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			aiFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+createAIChatUI()
