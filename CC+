@@ -1,0 +1,239 @@
+-- [[ Ultimate Name Changer (Visible Tag + Tutorial UI + Group Link) ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LP = Players.LocalPlayer
+
+-- ฟังก์ชันสร้างป้ายชื่อบนหัว
+local function createCustomNameTag(character)
+	local head = character:WaitForChild("Head", 5)
+	if not head then return end
+
+	if head:FindFirstChild("GlobalNameTag") then
+		head.GlobalNameTag:Destroy()
+	end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "GlobalNameTag"
+	billboard.Size = UDim2.new(0, 200, 0, 50)
+	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Adornee = head
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Name = "NameDisplay"
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = LP.DisplayName or LP.Name
+	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textLabel.TextSize = 16
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.Parent = billboard
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(0, 0, 0)
+	stroke.Thickness = 1.5
+	stroke.Parent = textLabel
+
+	billboard.Parent = head
+end
+
+-- สร้าง UI เมนูหลักและหน้าต่างวิธีเล่น
+local function createChangerUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("GlobalNameChangerGUI") then
+		playerGui.GlobalNameChangerGUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "GlobalNameChangerGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	-- กรอบเมนูหลัก (ขยายความสูงเพิ่มพื้นที่ปุ่มเข้ากลุ่ม)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 260, 0, 160)
+	frame.Position = UDim2.new(0.5, -130, 0.75, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	frame.BackgroundTransparency = 0.15
+	frame.Parent = screenGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(200, 200, 200)
+	stroke.Thickness = 1.5
+	stroke.Parent = frame
+
+	-- ช่องพิมพ์ชื่อ
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.9, 0, 0.24, 0)
+	textBox.Position = UDim2.new(0.05, 0, 0.06, 0)
+	textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	textBox.PlaceholderText = "พิมพ์ชื่อที่ต้องการ..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextSize = 15
+	textBox.Font = Enum.Font.SourceSansBold
+	textBox.Parent = frame
+	Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+
+	-- ปุ่มเปลี่ยนชื่อ
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.9, 0, 0.22, 0)
+	button.Position = UDim2.new(0.05, 0, 0.33, 0)
+	button.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+	button.Text = "เปลี่ยนชื่อ (อัปเดตป้ายบนหัว)"
+	button.TextColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextSize = 13
+	button.Font = Enum.Font.SourceSansBold
+	button.Parent = frame
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+
+	-- ปุ่มเปิดวิธีเล่น (Tutorial Button)
+	local tutorialButton = Instance.new("TextButton")
+	tutorialButton.Size = UDim2.new(0.9, 0, 0.18, 0)
+	tutorialButton.Position = UDim2.new(0.05, 0, 0.58, 0)
+	tutorialButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+	tutorialButton.Text = "💡 วิธีใช้งาน / ตัวอย่าง"
+	tutorialButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tutorialButton.TextSize = 12
+	tutorialButton.Font = Enum.Font.SourceSansBold
+	tutorialButton.Parent = frame
+	Instance.new("UICorner", tutorialButton).CornerRadius = UDim.new(0, 6)
+
+	-- ปุ่มเข้ากลุ่ม Community (Group Button ตามภาพตัวอย่าง)
+	local groupButton = Instance.new("TextButton")
+	groupButton.Size = UDim2.new(0.9, 0, 0.18, 0)
+	groupButton.Position = UDim2.new(0.05, 0, 0.79, 0)
+	groupButton.BackgroundColor3 = Color3.fromRGB(50, 160, 90) -- สีเขียวโดดเด่น
+	groupButton.Text = "🌐 เข้ากลุ่ม Community"
+	groupButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	groupButton.TextSize = 12
+	groupButton.Font = Enum.Font.SourceSansBold
+	groupButton.Parent = frame
+	Instance.new("UICorner", groupButton).CornerRadius = UDim.new(0, 6)
+
+	-- หน้าต่างคู่มือวิธีเล่น
+	local tutFrame = Instance.new("Frame")
+	tutFrame.Size = UDim2.new(0, 280, 0, 180)
+	tutFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+	tutFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	tutFrame.BackgroundTransparency = 0.05
+	tutFrame.Visible = false
+	tutFrame.Parent = screenGui
+	Instance.new("UICorner", tutFrame).CornerRadius = UDim.new(0, 10)
+
+	local tutStroke = Instance.new("UIStroke")
+	tutStroke.Color = Color3.fromRGB(255, 215, 0)
+	tutStroke.Thickness = 1.5
+	tutStroke.Parent = tutFrame
+
+	local tutTitle = Instance.new("TextLabel")
+	tutTitle.Size = UDim2.new(1, 0, 0.2, 0)
+	tutTitle.BackgroundTransparency = 1
+	tutTitle.Text = "📖 วิธีใช้งานสคริปต์เปลี่ยนชื่อ"
+	tutTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+	tutTitle.TextSize = 15
+	tutTitle.Font = Enum.Font.SourceSansBold
+	tutTitle.Parent = tutFrame
+
+	local tutDesc = Instance.new("TextLabel")
+	tutDesc.Size = UDim2.new(0.9, 0, 0.55, 0)
+	tutDesc.Position = UDim2.new(0.05, 0, 0.2, 0)
+	tutDesc.BackgroundTransparency = 1
+	tutDesc.Text = "• พิมพ์ชื่อที่ต้องการลงในช่องสีดำ\n• กดปุ่ม 'เปลี่ยนชื่อ' เพื่ออัปเดตป้ายชื่อบนหัวทันที\n• กดปุ่ม 'เข้ากลุ่ม Community' เพื่อไปหน้ากลุ่ม\n• ระบบจะสร้างป้าย BillboardGui ขึ้นมาบังคับแสดงผลครับ"
+	tutDesc.TextColor3 = Color3.fromRGB(240, 240, 240)
+	tutDesc.TextSize = 12
+	tutDesc.Font = Enum.Font.SourceSans
+	tutDesc.TextWrapped = true
+	tutDesc.Parent = tutFrame
+
+	local closeTutBtn = Instance.new("TextButton")
+	closeTutBtn.Size = UDim2.new(0.6, 0, 0.18, 0)
+	closeTutBtn.Position = UDim2.new(0.2, 0, 0.78, 0)
+	closeTutBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	closeTutBtn.Text = "ปิดหน้าต่าง"
+	closeTutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeTutBtn.TextSize = 13
+	closeTutBtn.Font = Enum.Font.SourceSansBold
+	closeTutBtn.Parent = tutFrame
+	Instance.new("UICorner", closeTutBtn).CornerRadius = UDim.new(0, 6)
+
+	-- ควบคุมการเปิด-ปิดหน้าต่างวิธีเล่น
+	tutorialButton.MouseButton1Click:Connect(function()
+		tutFrame.Visible = not tutFrame.Visible
+	end)
+
+	closeTutBtn.MouseButton1Click:Connect(function()
+		tutFrame.Visible = false
+	end)
+
+	-- ปุ่มกดเปลี่ยนชื่อ: อัปเดตป้ายบนหัวและ DisplayName
+	button.MouseButton1Click:Connect(function()
+		local newName = textBox.Text
+		if newName ~= "" and LP.Character then
+			local head = LP.Character:FindFirstChild("Head")
+			if head then
+				local tag = head:FindFirstChild("GlobalNameTag")
+				if tag and tag:FindFirstChild("NameDisplay") then
+					tag.NameDisplay.Text = newName
+				end
+			end
+			local humanoid = LP.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				pcall(function()
+					humanoid.DisplayName = newName
+				end)
+			end
+		end
+	end)
+
+	-- ปุ่มกดเข้ากลุ่ม Community (สามารถเปลี่ยน ID กลุ่มใส่แทนเลขด้านล่างได้ตามต้องการครับ)
+	groupButton.MouseButton1Click:Connect(function()
+		pcall(function()
+			-- ตัวอย่างลิงก์หรือเปิดหน้าต่างกลุ่ม Roblox (ใส่ Group ID ของคุณตรงนี้)
+			local groupId = 0 -- เปลี่ยนเลข 0 เป็น ID กลุ่มของคุณ เช่น 12345678
+			if groupId > 0 then
+				MarketplaceService:PromptGroupJoin(LP, groupId)
+			else
+				-- ถ้ายังไม่ได้ใส่ ID กลุ่ม จะเด้งแจ้งเตือนหรือเปิดเบราว์เซอร์สำรอง
+				print("กรุณาใส่ Group ID ในสคริปต์ส่วนตัว")
+			end
+		end)
+	end)
+
+	-- ระบบลากเมนูหลักย้ายตำแหน่ง
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+-- ผูกระบบกับตัวละคร (เกิดใหม่ป้ายไม่หาย)
+LP.CharacterAdded:Connect(function(char)
+	task.wait(0.5)
+	createCustomNameTag(char)
+end)
+
+if LP.Character then
+	createCustomNameTag(LP.Character)
+end
+
+createChangerUI()
