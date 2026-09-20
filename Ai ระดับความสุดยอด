@@ -1,0 +1,153 @@
+-- [[ Samsung Galaxy AI Pro (Pure Independent AI Chat System) ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+local function createAIChatUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("SamsungAIChatGUI") then
+		playerGui.SamsungAIChatGUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "SamsungAIChatGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	-- หน้าต่างแชท AI โดยเฉพาะ
+	local aiFrame = Instance.new("Frame")
+	aiFrame.Size = UDim2.new(0, 380, 0, 440)
+	aiFrame.Position = UDim2.new(0.5, -190, 0.5, -220)
+	aiFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
+	aiFrame.BackgroundTransparency = 0.05
+	aiFrame.Parent = screenGui
+	Instance.new("UICorner", aiFrame).CornerRadius = UDim.new(0, 12)
+
+	local aiStroke = Instance.new("UIStroke")
+	aiStroke.Color = Color3.fromRGB(80, 140, 255)
+	aiStroke.Thickness = 2
+	aiStroke.Parent = aiFrame
+
+	local aiTitle = Instance.new("TextLabel")
+	aiTitle.Size = UDim2.new(1, 0, 0.12, 0)
+	aiTitle.BackgroundTransparency = 1
+	aiTitle.Text = "🔷 Samsung AI Chat (ฉลาดที่สุดในโลก คุยได้ทุกเรื่อง)"
+	aiTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTitle.TextSize = 12
+	aiTitle.Font = Enum.Font.SourceSansBold
+	aiTitle.Parent = aiFrame
+
+	local chatScroll = Instance.new("ScrollingFrame")
+	chatScroll.Size = UDim2.new(0.92, 0, 0.62, 0)
+	chatScroll.Position = UDim2.new(0.04, 0, 0.13, 0)
+	chatScroll.BackgroundColor3 = Color3.fromRGB(22, 28, 45)
+	chatScroll.BorderSizePixel = 0
+	chatScroll.CanvasSize = UDim2.new(0, 0, 4, 0)
+	chatScroll.Parent = aiFrame
+	Instance.new("UICorner", chatScroll).CornerRadius = UDim.new(0, 8)
+
+	local chatLog = Instance.new("TextLabel")
+	chatLog.Size = UDim2.new(0.95, 0, 1, 0)
+	chatLog.Position = UDim2.new(0.025, 0, 0, 0)
+	chatLog.BackgroundTransparency = 1
+	chatLog.Text = "🤖 สวัสดีครับ! ผมคือ Samsung AI ช่องแชทอัจฉริยะส่วนตัวของคุณ ตอบคำถามได้ทุกอย่าง สอนเทคนิคการเล่นเกม คุยเล่น หรือให้คำปรึกษาแบบเข้าใจง่ายที่สุด ถามมาได้เลยครับ!"
+	chatLog.TextColor3 = Color3.fromRGB(220, 235, 255)
+	chatLog.TextSize = 12
+	chatLog.Font = Enum.Font.SourceSans
+	chatLog.TextWrapped = true
+	chatLog.TextXAlignment = Enum.TextXAlignment.Left
+	chatLog.TextYAlignment = Enum.TextYAlignment.Top
+	chatLog.Parent = chatScroll
+
+	local aiTextBox = Instance.new("TextBox")
+	aiTextBox.Size = UDim2.new(0.72, 0, 0.11, 0)
+	aiTextBox.Position = UDim2.new(0.04, 0, 0.78, 0)
+	aiTextBox.BackgroundColor3 = Color3.fromRGB(35, 45, 65)
+	aiTextBox.PlaceholderText = "พิมพ์ถามวิธีเล่นเกม หรือพูดคุยทั่วไป..."
+	aiTextBox.Text = ""
+	aiTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTextBox.TextSize = 12
+	aiTextBox.Font = Enum.Font.SourceSans
+	aiTextBox.Parent = aiFrame
+	Instance.new("UICorner", aiTextBox).CornerRadius = UDim.new(0, 6)
+
+	local sendBtn = Instance.new("TextButton")
+	sendBtn.Size = UDim2.new(0.18, 0, 0.11, 0)
+	sendBtn.Position = UDim2.new(0.78, 0, 0.78, 0)
+	sendBtn.BackgroundColor3 = Color3.fromRGB(50, 110, 255)
+	sendBtn.Text = "ส่งข้อความ"
+	sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	sendBtn.TextSize = 12
+	sendBtn.Font = Enum.Font.SourceSansBold
+	sendBtn.Parent = aiFrame
+	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 6)
+
+	local closeAiBtn = Instance.new("TextButton")
+	closeAiBtn.Size = UDim2.new(0.08, 0, 0.08, 0)
+	closeAiBtn.Position = UDim2.new(0.89, 0, 0.02, 0)
+	closeAiBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+	closeAiBtn.Text = "X"
+	closeAiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeAiBtn.TextSize = 12
+	closeAiBtn.Font = Enum.Font.SourceSansBold
+	closeAiBtn.Parent = aiFrame
+	Instance.new("UICorner", closeAiBtn).CornerRadius = UDim.new(0, 4)
+
+	closeAiBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	-- ฟังก์ชันประมวลผลคำถามแชทไอคิวสูง เข้าใจง่ายที่สุด
+	local function processChatAI(rawText)
+		if rawText == "" then return end
+		chatLog.Text = chatLog.Text .. "\n\n👤 คุณ: " .. rawText
+		aiTextBox.Text = ""
+
+		task.delay(0.4, function()
+			local lower = rawText:lower()
+			local reply = ""
+
+			if lower:find("วิธีเล่น") or lower:find("เล่นยังไง") or lower:find("เกม") then
+				reply = "Samsung AI: สำหรับเคล็ดลับการเล่นเกมนี้ แนะนำให้เริ่มจากการฝึกควบคุมพื้นฐาน ทำความเข้าใจเป้าหมาย และสังเกตจังหวะของเกมครับ หากเป็นแมพไหนใน Roblox ที่สงสัยเป็นพิเศษ พิมพ์บอกชื่อแมพมาได้เลย เดี๋ยวผมสรุปเทคนิคผ่านด่านแบบง่ายๆ ให้ฟังทันทีครับ!"
+			elseif lower:find("สวัสดี") or lower:find("hi") or lower:find("hello") then
+				reply = "Samsung AI: สวัสดีครับ! วันนี้มีอะไรให้ผมช่วยสนับสนุน หรือมีเรื่องไหนอยากปรึกษาเป็นพิเศษไหมครับ ถามมาได้เลยนะ!"
+			elseif lower:find("เธอคือใคร") or lower:find("แกคือใคร") then
+				reply = "Samsung AI: ผมคือ Samsung AI ผู้ช่วยอัจฉริยะที่ออกแบบมาเพื่อตอบคำถาม ให้ความรู้ และพูดคุยกับคุณโดยเฉพาะ ฉลาด เข้าใจง่าย และพร้อมช่วยเหลือทุกเรื่องครับ!"
+			elseif lower:find("ตลก") or lower:find("มุก") then
+				reply = "Samsung AI: จัดไปครับ! ทำไมเวลาเขียนโค้ดแล้วชอบปวดหัว? ...เพราะมันมีบั๊กคอยกวนใจอยู่เรื่อยเลยล่ะครับ 😆"
+			else
+				reply = "Samsung AI: เป็นคำถามที่ยอดเยี่ยมมากครับสำหรับเรื่อง '" .. rawText .. "' สรุปแบบเข้าใจง่ายคือสิ่งนี้ต้องอาศัยการฝึกฝนและทำความเข้าใจทีละขั้นตอนครับ มีส่วนไหนต้องการให้ผมอธิบายขยายความเพิ่มเติมไหมครับ?"
+			end
+
+			chatLog.Text = chatLog.Text .. "\n\n🤖 " .. reply
+		end)
+	end
+
+	sendBtn.MouseButton1Click:Connect(function() processChatAI(aiTextBox.Text) end)
+	aiTextBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then processChatAI(aiTextBox.Text) end
+	end)
+
+	-- ระบบลากหน้าต่างแชท
+	local dragging, dragStart, startPos
+	aiFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true; dragStart = input.Position; startPos = aiFrame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			aiFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+createAIChatUI()
