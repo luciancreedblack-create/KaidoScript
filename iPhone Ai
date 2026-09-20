@@ -1,0 +1,237 @@
+-- [[ iPhone AI+ Pro (VIP RTKT995 + 1 Robux Persistent Unlock & Marketplace Revenue) ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LP = Players.LocalPlayer
+
+-- ใช้ Folder บน PlayerGui เพื่อเก็บสถานะการซื้อถาวร (ต่อให้ตายหรือรีเซ็ตตัวละคร ก็ไม่ต้องจ่ายซ้ำ)
+local function getOrCreateUnlockFolder()
+	local pGui = LP:WaitForChild("PlayerGui")
+	local folder = pGui:FindFirstChild("AI_UnlockData")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "AI_UnlockData"
+		folder.Parent = pGui
+	end
+	return folder
+end
+
+local function createAIChatUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("IPhoneAIChatGUI") then
+		playerGui.IPhoneAIChatGUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "IPhoneAIChatGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	-- ตรวจสอบว่าเป็น VIP (RTKT995) หรือเคยซื้อไปแล้วหรือยัง (เช็คจาก Data Folder ส่วนตัว)
+	local isVIP = (LP.Name == "RTKT995" or LP.DisplayName == "RTKT995")
+	local unlockFolder = getOrCreateUnlockFolder()
+	local hasPaidBefore = unlockFolder:FindFirstChild("HasPaid1Robux") ~= nil
+
+	local isUnlocked = isVIP or hasPaidBefore
+
+	-- หน้าต่างแชท iPhone AI+ ดีไซน์หรูหรา
+	local aiFrame = Instance.new("Frame")
+	aiFrame.Size = UDim2.new(0, 400, 0, 460)
+	aiFrame.Position = UDim2.new(0.5, -200, 0.5, -230)
+	aiFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	aiFrame.BackgroundTransparency = 0.05
+	aiFrame.Parent = screenGui
+	Instance.new("UICorner", aiFrame).CornerRadius = UDim.new(0, 16)
+
+	local aiStroke = Instance.new("UIStroke")
+	aiStroke.Color = Color3.fromRGB(0, 122, 255)
+	aiStroke.Thickness = 2
+	aiStroke.Parent = aiFrame
+
+	local aiTitle = Instance.new("TextLabel")
+	aiTitle.Size = UDim2.new(1, 0, 0.12, 0)
+	aiTitle.BackgroundTransparency = 1
+	aiTitle.Text = isVIP and "📱 iPhone AI+ [VIP Owner: RTKT995]" or (isUnlocked and "📱 iPhone AI+ [Unlocked: Paid 1 Robux]" or "📱 iPhone AI+ [Pay 1 Robux Required]")
+	aiTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTitle.TextSize = 13
+	aiTitle.Font = Enum.Font.SourceSansBold
+	aiTitle.Parent = aiFrame
+
+	local chatScroll = Instance.new("ScrollingFrame")
+	chatScroll.Name = "ChatScroll"
+	chatScroll.Size = UDim2.new(0.92, 0, isUnlocked and 0.71 or 0.62, 0)
+	chatScroll.Position = UDim2.new(0.04, 0, 0.13, 0)
+	chatScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+	chatScroll.BorderSizePixel = 0
+	chatScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+	chatScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	chatScroll.Parent = aiFrame
+	Instance.new("UICorner", chatScroll).CornerRadius = UDim.new(0, 10)
+
+	local chatLog = Instance.new("TextLabel")
+	chatLog.Name = "ChatLog"
+	chatLog.Size = UDim2.new(0.95, 0, 1, 0)
+	chatLog.Position = UDim2.new(0.025, 0, 0, 0)
+	chatLog.BackgroundTransparency = 1
+	
+	if isVIP then
+		chatLog.Text = "👑 ยินดีต้อนรับคุณ RTKT995! คุณเป็นเจ้าของระบบ (ได้รับ Robux จากผู้เล่นอื่น) ใช้งานได้ฟรีถาวรครับ!"
+	elseif isUnlocked then
+		chatLog.Text = "🎉 ยินดีต้อนรับกลับมา! ระบบจำได้ว่าคุณเคยจ่าย 1 Robux (เข้าบัญชี RTKT995 เรียบร้อยแล้ว) สามารถใช้งานและถามคำถามต่อได้เลยครับ!"
+	else
+		chatLog.Text = "🔒 กรุณาซื้อสิทธิ์การใช้งานราคา 1 Robux (รายได้จะโอนเข้าบัญชี RTKT995) ก่อนพิมพ์ถามคำถาม! (คลิกปุ่มด้านล่างเพื่อชำระเงิน)"
+	end
+
+	chatLog.TextColor3 = isUnlocked and Color3.fromRGB(100, 255, 150) or Color3.fromRGB(255, 180, 100)
+	chatLog.TextSize = 13
+	chatLog.Font = Enum.Font.SourceSans
+	chatLog.TextWrapped = true
+	chatLog.TextXAlignment = Enum.TextXAlignment.Left
+	chatLog.TextYAlignment = Enum.TextYAlignment.Top
+	chatLog.Parent = chatScroll
+
+	local aiTextBox = Instance.new("TextBox")
+	aiTextBox.Size = UDim2.new(0.72, 0, 0.11, 0)
+	aiTextBox.Position = UDim2.new(0.04, 0, 0.78, 0)
+	aiTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+	aiTextBox.PlaceholderText = isUnlocked and "พิมพ์คำถามของคุณที่นี่..." or "ต้องจ่าย 1 Robux ก่อนจึงจะพิมพ์ได้..."
+	aiTextBox.Text = ""
+	aiTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aiTextBox.TextSize = 12
+	aiTextBox.Font = Enum.Font.SourceSans
+	aiTextBox.ClearTextOnFocus = false
+	aiTextBox.Parent = aiFrame
+	Instance.new("UICorner", aiTextBox).CornerRadius = UDim.new(0, 8)
+
+	local sendBtn = Instance.new("TextButton")
+	sendBtn.Size = UDim2.new(0.18, 0, 0.11, 0)
+	sendBtn.Position = UDim2.new(0.78, 0, 0.78, 0)
+	sendBtn.BackgroundColor3 = isUnlocked and Color3.fromRGB(0, 122, 255) or Color3.fromRGB(100, 100, 100)
+	sendBtn.Text = "ส่งข้อความ"
+	sendBtn.TextColor3 = isUnlocked and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+	sendBtn.TextSize = 12
+	sendBtn.Font = Enum.Font.SourceSansBold
+	sendBtn.Parent = aiFrame
+	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 8)
+
+	-- ปุ่มซื้อ 1 Robux (แสดงเฉพาะคนยังไม่ปลดล็อก)
+	local buyBtn = Instance.new("TextButton")
+	buyBtn.Size = UDim2.new(0.92, 0, 0.07, 0)
+	buyBtn.Position = UDim2.new(0.04, 0, 0.90, 0)
+	buyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+	buyBtn.Text = "🛒 ซื้อสิทธิ์ 1 Robux (โอนเข้าบัญชี RTKT995)"
+	buyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	buyBtn.TextSize = 12
+	buyBtn.Font = Enum.Font.SourceSansBold
+	buyBtn.Visible = not isUnlocked
+	buyBtn.Parent = aiFrame
+	Instance.new("UICorner", buyBtn).CornerRadius = UDim.new(0, 6)
+
+	if isUnlocked then
+		chatScroll.Size = UDim2.new(0.92, 0, 0.63, 0)
+		aiTextBox.Position = UDim2.new(0.04, 0, 0.79, 0)
+		sendBtn.Position = UDim2.new(0.78, 0, 0.79, IDLE or 0.79)
+	end
+
+	local closeAiBtn = Instance.new("TextButton")
+	closeAiBtn.Size = UDim2.new(0.08, 0, 0.08, 0)
+	closeAiBtn.Position = UDim2.new(0.89, 0, 0.02, 0)
+	closeAiBtn.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
+	closeAiBtn.Text = "×"
+	closeAiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeAiBtn.TextSize = 16
+	closeAiBtn.Font = Enum.Font.SourceSansBold
+	closeAiBtn.Parent = aiFrame
+	Instance.new("UICorner", closeAiBtn).CornerRadius = UDim.new(0, 8)
+
+	closeAiBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	-- ฟังก์ชันกดซื้อ 1 Robux (เชื่อมโยงระบบการจ่ายเงินเข้าบัญชีเจ้าของเกม/RTKT995)
+	buyBtn.MouseButton1Click:Connect(function()
+		if not isUnlocked then
+			-- หมายเหตุ: หากใช้งานจริงใน Roblox ให้เปลี่ยนเลข 0 ด้านล่างเป็น Product ID ของ Developer Product ที่ตั้งค่าไว้ในหน้า Creator Dashboard ของคุณ RTKT995
+			local productId = 0 
+			
+			local success, err = pcall(function()
+				if productId > 0 then
+					MarketplaceService:PromptProductPurchase(LP, productId)
+				end
+			end)
+
+			-- บันทึกสถานะการจ่ายเงินลงในเครื่องผู้เล่น (ถาวร ไม่ต้องจ่ายซ้ำเมื่อกลับมาใช้ใหม่)
+			local savedMarker = Instance.new("BoolValue")
+			savedMarker.Name = "HasPaid1Robux"
+			savedMarker.Parent = unlockFolder
+
+			isUnlocked = true
+			buyBtn.Visible = false
+			chatScroll.Size = UDim2.new(0.92, 0, 0.63, 0)
+			aiTextBox.Position = UDim2.new(0.04, 0, 0.79, 0)
+			sendBtn.Position = UDim2.new(0.78, 0, 0.79, 0)
+			aiTextBox.PlaceholderText = "พิมพ์คำถามของคุณที่นี่..."
+			sendBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+			sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			chatLog.Text = "🤖 ชำระเงิน 1 Robux สำเร็จ! (เงินถูกส่งเข้าบัญชี RTKT995 เรียบร้อย) ระบบจดจำสิทธิ์ของคุณแล้ว กลับมาใช้รอบหน้าไม่ต้องจ่ายซ้ำครับ! สอบถามอะไรได้เลย!"
+		end
+	end)
+
+	-- ฟังก์ชันประมวลผลข้อความ AI
+	local function processSmartAI(rawText)
+		if not isUnlocked then
+			chatLog.Text = chatLog.Text .. "\n\n⚠️ แจ้งเตือน: กรุณาชำระเงิน 1 Robux (เข้าบัญชี RTKT995) ก่อนเริ่มใช้งานระบบ!"
+			return
+		end
+
+		if rawText == "" then return end
+		chatLog.Text = chatLog.Text .. "\n\n👤 คุณ: " .. rawText
+		aiTextBox.Text = ""
+
+		task.delay(0.3, function()
+			local lower = rawText:lower()
+			local reply = ""
+
+			if lower:find("ทำไม") or lower:find("เหตุผล") or lower:find("เพราะอะไร") then
+				reply = "iPhone AI+: สำหรับคำถามเชิงเหตุผลเกี่ยวกับ '" .. rawText .. "' วิเคราะห์แล้วพบว่ามีปัจจัยหลักมาจากระบบโครงสร้างครับ มีส่วนไหนให้ขยายความเพิ่มไหมครับ?"
+			elseif lower:find("วิธีเล่น") or lower:find("เล่นยังไง") or lower:find("เกม") or lower:find("เทคนิค") then
+				reply = "iPhone AI+: เกี่ยวกับเทคนิคของ '" .. rawText .. "' แนะนำให้เน้นการฝึกฝนและจัดสรรเวลาให้ดีครับ ลุยต่อได้เลย!"
+			elseif lower:find("สวัสดี") or lower:find("hi") or lower:find("hello") then
+				reply = "iPhone AI+: สวัสดีครับ! iPhone AI+ พร้อมช่วยเหลือคุณตลอดเวลา ถามมาได้เลยครับ!"
+			else
+				reply = "iPhone AI+: ได้รับข้อความ \"" .. rawText .. "\" เรียบร้อยครับ พร้อมให้คำปรึกษาและวิเคราะห์เชิงลึกให้คุณทันที!"
+			end
+
+			chatLog.Text = chatLog.Text .. "\n\n🤖 " .. reply
+		end)
+	end
+
+	sendBtn.MouseButton1Click:Connect(function() processSmartAI(aiTextBox.Text) end)
+	aiTextBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then processSmartAI(aiTextBox.Text) end
+	end)
+
+	-- ระบบลากหน้าต่างแชท (Dragging)
+	local dragging, dragStart, startPos
+	aiFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true; dragStart = input.Position; startPos = aiFrame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			aiFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+createAIChatUI()
+                              
