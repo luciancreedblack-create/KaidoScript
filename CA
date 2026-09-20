@@ -1,0 +1,100 @@
+-- [[ Roblox Universal DisplayName & Draggable UI ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+-- ฟังก์ชันเปลี่ยนชื่อผ่านระบบแท้ของ Roblox (ทำให้คนอื่นในแมพมองเห็นชื่อใหม่และใช้ฟอนต์ดั้งเดิม)
+local function setGlobalDisplayName(character, newName)
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if humanoid and newName ~= "" then
+		humanoid.DisplayName = newName
+	end
+end
+
+-- เมื่อตัวละครเกิดใหม่ ให้เตรียมพร้อมระบบ
+LP.CharacterAdded:Connect(function(character)
+	task.wait(0.5)
+end)
+
+-- สร้าง UI เมนูพิมพ์เปลี่ยนชื่อ (ลากย้ายตำแหน่งได้)
+local function createUI()
+	local playerGui = LP:WaitForChild("PlayerGui")
+	if playerGui:FindFirstChild("GlobalNameChangerUI") then
+		playerGui.GlobalNameChangerUI:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "GlobalNameChangerUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 260, 0, 90)
+	frame.Position = UDim2.new(0.5, -130, 0.8, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	frame.BackgroundTransparency = 0.15
+	frame.Parent = screenGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(200, 200, 200)
+	stroke.Thickness = 1.5
+	stroke.Parent = frame
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0.9, 0, 0.4, 0)
+	textBox.Position = UDim2.new(0.05, 0, 0.1, 0)
+	textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	textBox.PlaceholderText = "พิมพ์ชื่อใหม่ให้คนอื่นเห็น..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextSize = 16
+	textBox.Font = Enum.Font.SourceSansBold
+	textBox.Parent = frame
+	Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.9, 0, 0.35, 0)
+	button.Position = UDim2.new(0.05, 0, 0.55, 0)
+	button.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+	button.Text = "เปลี่ยนชื่อ"
+	button.TextColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextSize = 16
+	button.Font = Enum.Font.SourceSansBold
+	button.Parent = frame
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+
+	-- ปุ่มกดเปลี่ยนชื่อ (ส่งผลให้คนอื่นมองเห็นชื่อใหม่ด้วย)
+	button.MouseButton1Click:Connect(function()
+		local newName = textBox.Text
+		if newName ~= "" and LP.Character then
+			setGlobalDisplayName(LP.Character, newName)
+		end
+	end)
+
+	-- ระบบลาก UI ย้ายตำแหน่ง
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+end
+
+-- รันระบบสร้าง UI เมนู
+createUI()
