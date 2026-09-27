@@ -1,0 +1,141 @@
+-- ==========================================
+-- รวมสคริปต์แฮกเกอร์ในตำนาน (Server & Client Generator)
+-- ==========================================
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- 1. สร้าง RemoteEvent สำหรับคุยกันระหว่าง Server และ Client
+local remoteEvent = ReplicatedStorage:FindFirstChild("UltimateHackerSystemEvent")
+if not remoteEvent then
+    remoteEvent = Instance.new("RemoteEvent")
+    remoteEvent.Name = "UltimateHackerSystemEvent"
+    remoteEvent.Parent = ReplicatedStorage
+end
+
+-- ตารางเก็บบันทึกเวลาแบน 30 นาที
+local bannedPlayers = {}
+
+-- ==========================================
+-- ส่วนที่ 1: ระบบฝั่ง Server (จัดการแบน 30 นาที และรับคำสั่ง)
+-- ==========================================
+if game:GetService("RunService"):IsServer() then
+    
+    -- ตรวจสอบเวลาแบนตอนผู้เล่นเข้าเกม
+    Players.PlayerAdded:Connect(function(player)
+        local userId = player.UserId
+        local currentTime = os.time()
+        
+        if bannedPlayers[userId] and currentTime < bannedPlayers[userId] then
+            local timeLeft = math.ceil((bannedPlayers[userId] - currentTime) / 60)
+            player:Kick("⚠️ [SYSTEM LOCKED]: คุณถูกแก๊งแฮกเกอร์เจาะระบบ! ต้องรออีก " .. timeLeft .. " นาที ถึงจะเข้าเกมได้")
+        else
+            bannedPlayers[userId] = nil
+        end
+    end)
+
+    -- ตรวจสอบข้อความแชทเพื่อเรียกใช้สกิล
+    Players.PlayerAdded:Connect(function(player)
+        player.Chatted:Connect(function(message)
+            message = message:lower()
+            
+            local skillName = ""
+            if message == "!johndoe" then
+                skillName = "John Doe: March 18th"
+            elseif message == "!janedoe" then
+                skillName = "Jane Doe: Shadow Protocol"
+            elseif message == "!1x1x1x1" then
+                skillName = "1x1x1x1: Void Corruption"
+            elseif message == "!c00lkidd" then
+                skillName = "c00lkidd: Red Screen Virus"
+            end
+            
+            if skillName ~= "" then
+                -- สั่งแจ้งเตือนทุกคนในแมพพร้อมกัน
+                remoteEvent:FireAllClients("alert", player.Name, skillName)
+            end
+        end)
+    end)
+
+    -- รับคำสั่งเตะผู้เล่นจริงจาก Client เมื่อคลิกเป้าหมาย
+    remoteEvent.OnServerEvent:Connect(function(attacker, targetPlayer, skillName)
+        if targetPlayer and targetPlayer:IsA("Player") and targetPlayer ~= attacker then
+            local banDuration = 30 * 60 -- 30 นาที (1800 วินาที)
+            bannedPlayers[targetPlayer.UserId] = os.time() + banDuration
+            
+            local kickMsg = "💀 [" .. skillName:upper() .. "]: ระบบของคุณถูกทำลายโดย " .. attacker.Name .. "!\nห้ามเข้าเกมนี้เป็นเวลา 30 นาที"
+            targetPlayer:Kick(kickMsg)
+        end
+    end)
+
+-- ==========================================
+-- ส่วนที่ 2: ระบบฝั่ง Client (สร้าง UI แจ้งเตือนและระบบเล็งเป้าหมาย)
+-- ==========================================
+else
+    local player = Players.LocalPlayer
+    local mouse = player:GetMouse()
+
+    -- ฟังก์ชันแสดงป้ายเตือนภัยให้ทุกคนเห็น
+    local function showGlobalAlert(attackerName, skillName)
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "HackerAlertGUI"
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 600, 0, 180)
+        frame.Position = UDim2.new(0.5, -300, 0.2, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        frame.BackgroundTransparency = 0.2
+        frame.BorderSizePixel = 3
+        frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
+        frame.Parent = screenGui
+
+        -- ข้อความภาษาอังกฤษตามที่ขอ
+        local textEn = Instance.new("TextLabel")
+        textEn.Size = UDim2.new(1, 0, 0, 50)
+        textEn.Position = UDim2.new(0, 0, 0, 10)
+        textEn.BackgroundTransparency = 1
+        textEn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        textEn.TextScaled = true
+        textEn.Font = Enum.Font.SourceSansBold
+        textEn.Text = "The hacker alert system is coming.!!"
+        textEn.Parent = frame
+
+        -- ข้อความภาษาไทยแจ้งเตือน
+        local textTh = Instance.new("TextLabel")
+        textTh.Size = UDim2.new(1, 0, 0, 50)
+        textTh.Position = UDim2.new(0, 0, 0, 65)
+        textTh.BackgroundTransparency = 1
+        textTh.TextColor3 = Color3.fromRGB(255, 255, 255)
+        textTh.TextScaled = true
+        textTh.Font = Enum.Font.SourceSansBold
+        textTh.Text = "🚨 มีแฮกเกอร์กำลังมา! (" .. attackerName .. " ใช้สกิล " .. skillName .. ") 🚨"
+        textTh.Parent = frame
+
+        task.delay(4, function()
+            screenGui:Destroy()
+        end)
+    end
+
+    -- รับสัญญาณเมื่อมีการใช้สกิลในเซิร์ฟเวอร์
+    remoteEvent.OnClientEvent:Connect(function(actionType, attackerName, skillName)
+        if actionType == "alert" then
+            showGlobalAlert(attackerName, skillName)
+            
+            -- ถ้าเราเป็นคนพิมพ์สกิล ให้คลิกเลือกเป้าหมายที่ต้องการเตะ
+            if attackerName == player.Name then
+                local targetChar = mouse.Target
+                if targetChar and targetChar.Parent then
+                    local humanoid = targetChar.Parent:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        local targetPlayer = Players:GetPlayerFromCharacter(humanoid.Parent)
+                        if targetPlayer then
+                            remoteEvent:FireServer(targetPlayer, skillName)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
