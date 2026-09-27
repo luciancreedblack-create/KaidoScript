@@ -1,0 +1,156 @@
+-- ==========================================================
+-- ULTIMATE KING SYSTEM (1000% POWER BOOST - ONLY FOR RTKT995)
+-- ==========================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+-- ตารางรายชื่อผู้เล่นที่ได้รับสิทธิ์ยกเว้นและพลัง 1000% (ให้เฉพาะ RTKT995 คนเดียวเท่านั้น)
+local whitelistNames = {
+    ["RTKT995"] = true
+}
+
+-- 1. ระบบใส่ป้ายชื่อ "King👑" และเพิ่มพลังการประมวลผลสคริปต์ 1000% เฉพาะ RTKT995
+Players.PlayerAdded:Connect(function(player)
+    if whitelistNames[player.Name] then
+        player.CharacterAdded:Connect(function(character)
+            local head = character:WaitForChild("Head", 5)
+            if not head then return end
+            
+            if head:FindFirstChild("KingTitleTag") then
+                head.KingTitleTag:Destroy()
+            end
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "KingTitleTag"
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- สีทอง
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Text = "King👑 (1000% Power)"
+            textLabel.Parent = billboard
+        end)
+    end
+end)
+
+-- 2. ระบบป้องกันตัวละครขั้นสุดยอด (God Mode 1000% เฉพาะ RTKT995)
+Players.PlayerAdded:Connect(function(player)
+    if whitelistNames[player.Name] then
+        player.CharacterAdded:Connect(function(character)
+            local humanoid = character:WaitForChild("Humanoid", 5)
+            if humanoid then
+                -- ปลดล็อกความเร็วและพลังกระโดดให้ใช้สคริปต์ได้ 1000% เต็มที่
+                humanoid.WalkSpeed = math.max(humanoid.WalkSpeed, 32)
+                humanoid.JumpPower = math.max(humanoid.JumpPower, 70)
+                
+                humanoid.HealthChanged:Connect(function()
+                    if humanoid.Health < humanoid.MaxHealth then
+                        humanoid.Health = humanoid.MaxHealth
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
+-- 3. ระบบบอดี้การ์ด 4 ตัว + เรดาร์ประสิทธิภาพสูง 1000% (สร้างให้เฉพาะ RTKT995)
+local function spawnBodyguards(player)
+    if not whitelistNames[player.Name] then return end
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+    if not humanoidRootPart then return end
+
+    for i = 1, 4 do
+        task.spawn(function()
+            local npc = Instance.new("Model")
+            npc.Name = "KingGuard_Power_" .. i
+            
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(2, 3, 1)
+            part.Position = humanoidRootPart.Position + Vector3.new(i * 3, 0, 3)
+            part.BrickColor = BrickColor.new("Bright blue")
+            part.Parent = npc
+            
+            local humanoid = Instance.new("Humanoid")
+            humanoid.MaxHealth = 200
+            humanoid.Health = 200
+            humanoid.Parent = npc
+            
+            npc.PrimaryPart = part
+            npc.Parent = Workspace
+            
+            local exploitHits = {}
+            local reportedCheaters = {}
+
+            while npc and npc.Parent and character and character.Parent do
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                local npcHrp = npc.PrimaryPart
+                
+                if hrp and npcHrp then
+                    -- เดินตามหลัง RTKT995 แบบรวดเร็วและแม่นยำ 1000%
+                    local angle = (i / 4) * (2 * math.pi) + tick() * 3
+                    local offset = Vector3.new(math.cos(angle) * 6, 0, math.sin(angle) * 6)
+                    local targetPos = hrp.Position + offset
+                    humanoid:MoveTo(targetPos)
+                    
+                    -- เรดาร์ตรวจสอบผู้เล่นคนอื่นในแมฟแบบละเอียด
+                    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+                        -- ยกเว้น RTKT995 ไม่ให้โดนตรวจสอบหรือโดนเตะเด็ดขาด 1000%
+                        if not whitelistNames[otherPlayer.Name] and otherPlayer.Character then
+                            local otherHrp = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            local otherHumanoid = otherPlayer.Character:FindFirstChildOfClass("Humanoid")
+                            
+                            if otherHrp and otherHumanoid and otherHumanoid.Health > 0 then
+                                -- เช็คความผิดปกติของคนอื่น
+                                local isExploiting = false
+                                if otherHumanoid.WalkSpeed > 25 or (otherHrp.Position.Y - hrp.Position.Y > 20) then
+                                    isExploiting = true
+                                end
+                                
+                                local distance = (npcHrp.Position - otherHrp.Position).Magnitude
+                                
+                                if distance <= 40 or isExploiting then
+                                    otherHumanoid:TakeDamage(50)
+                                    exploitHits[otherPlayer] = (exploitHits[otherPlayer] or 0) + 1
+                                    
+                                    -- ส่งรายงานแอดมิน C_rongg ทันทีที่เจอคนโกงคนอื่น
+                                    if (isExploiting or exploitHits[otherPlayer] >= 2) and not reportedCheaters[otherPlayer] then
+                                        reportedCheaters[otherPlayer] = true
+                                        local reportMsg = "Hello, I am the main program manager of MapObby. I am... RTKT995 I'm here to help you because your map is full of cheaters. (Detected Cheater: " .. otherPlayer.Name .. ")"
+                                        print("🚨 [ADMIN REPORT TO C_rongg]: " .. reportMsg)
+                                    end
+                                    
+                                    -- เตะคนอื่นที่ใช้โปรแกรมโกงออกจากแมฟทันที
+                                    if exploitHits[otherPlayer] >= 3 or isExploiting then
+                                        otherPlayer:Kick("🛡️ [KING RADAR 1000%]: ตรวจพบโปรแกรมโกง! คุณถูกบอดี้การ์ดของ RTKT995 เตะออกจากแมพ (ชื่อโปร: " .. otherPlayer.Name .. ")")
+                                        exploitHits[otherPlayer] = nil
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.3)
+            end
+        end)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if whitelistNames[player.Name] then
+        player.CharacterAdded:Connect(function()
+            task.wait(2)
+            spawnBodyguards(player)
+        end)
+    end
+end)
