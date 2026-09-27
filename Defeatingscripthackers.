@@ -1,0 +1,187 @@
+-- ==========================================================
+-- THE GUARDIAN KING: 30 ANTI-EXPLOIT & KING SKILLS SYSTEM
+-- ==========================================================
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- สร้าง RemoteEvent สำหรับประสานงาน Server และ Client
+local remoteEvent = ReplicatedStorage:FindFirstChild("GuardianKingEvent")
+if not remoteEvent then
+    remoteEvent = Instance.new("RemoteEvent")
+    remoteEvent.Name = "GuardianKingEvent"
+    remoteEvent.Parent = ReplicatedStorage
+end
+
+-- ตารางเก็บบันทึกเวลาแบน 30 นาที สำหรับโปรแกรมโกง
+local bannedExploiters = {}
+
+-- ตรวจสอบเวลาแบนตอนเข้าเกม
+Players.PlayerAdded:Connect(function(player)
+    local userId = player.UserId
+    local currentTime = os.time()
+    
+    if bannedExploiters[userId] and currentTime < bannedExploiters[userId] then
+        local timeLeft = math.ceil((bannedExploiters[userId] - currentTime) / 60)
+        player:Kick("👑 [KING'S JUSTICE]: คุณถูกราชันย์พิพากษาแบนเนื่องจากใช้โปรแกรมโกง! ต้องรออีก " .. timeLeft .. " นาที ถึงจะเข้าเกมได้")
+    else
+        bannedExploiters[userId] = nil
+    end
+end)
+
+-- ==========================================
+-- ส่วนที่ 1: ระบบฝั่ง Server
+-- ==========================================
+if game:GetService("RunService"):IsServer() then
+    
+    -- สร้างออร่าและป้ายชื่อบนหัวให้ผู้ใช้พลังราชาเห็นเด่นชัด
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            local head = character:WaitForChild("Head", 5)
+            if not head then return end
+            
+            -- ป้ายชื่อบนหัว (BillboardGui)
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "KingBadge"
+            billboard.Size = UDim2.new(0, 250, 0, 70)
+            billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- สีทองราชา
+            textLabel.TextStrokeTransparency = 0 -- ขอบดำให้ตัวหนังสือคมชัด
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Text = "👑 THE GUARDIAN KING 👑\n[ ผู้พิทักษ์แห่งราชา ]"
+            textLabel.Parent = billboard
+            
+            -- พาร์ทิเคิลออร่าแสงรอบตัว
+            local attachment = Instance.new("Attachment", head)
+            local particle = Instance.new("ParticleEmitter")
+            particle.Name = "KingAura"
+            particle.Color = ColorSequence.new(Color3.fromRGB(255, 223, 0), Color3.fromRGB(255, 140, 0))
+            particle.Size = NumberSequence.new(0.5, 0)
+            particle.Texture = "rbxassetid://258123068" -- ประกายแสง
+            particle.Rate = 25
+            particle.Speed = NumberRange.new(2, 4)
+            particle.Parent = attachment
+        end)
+    end)
+
+    -- ตรวจจับคำสั่งแชท !king1 ถึง !king30
+    Players.PlayerAdded:Connect(function(player)
+        player.Chatted:Connect(function(message)
+            message = message:lower()
+            
+            if string.match(message, "^!king%d+$") then
+                local kingSkills = {
+                    ["!king1"]  = {Name = "1. ห้วงเวลานิรันดร์ & พิพากษาโปร (Time Stop & Anti-Exploit Kick)", Color = Color3.fromRGB(255, 0, 0), Type = "kick_exploit"},
+                    ["!king2"]  = {Name = "2. เนตรราชาสแกนโปรแกรมโกง (Anti-Cheat Scan)", Color = Color3.fromRGB(255, 215, 0)},
+                    ["!king3"]  = {Name = "3. เกราะศักดิ์สิทธิ์คุ้มครองผู้เล่น (Divine Shield)", Color = Color3.fromRGB(0, 191, 255)},
+                    ["!king4"]  = {Name = "4. บาตรสวรรค์ล้างบางสปีดฮัก (Speed Hack Purge)", Color = Color3.fromRGB(255, 69, 0)},
+                    ["!king5"]  = {Name = "5. ดาบพิพากษาแฮกเกอร์ (Hacker Execution Blade)", Color = Color3.fromRGB(138, 43, 226)},
+                    ["!king6"]  = {Name = "6. คลื่นพลังล้างระบบซอฟต์แวร์โกง (Cheat Wipe Wave)", Color = Color3.fromRGB(0, 255, 127)},
+                    ["!king7"]  = {Name = "7. กรงขังมิติเวลา (Time Prison Trap)", Color = Color3.fromRGB(75, 0, 130)},
+                    ["!king8"]  = {Name = "8. ศาลเตี้ยราชันย์พิพากษาโปร (King's Tribunal)", Color = Color3.fromRGB(220, 20, 60)},
+                    ["!king9"]  = {Name = "9. ค่ายกลสะกดจิตผู้ใช้โปร (Mind Control Glitch)", Color = Color3.fromRGB(255, 105, 180)},
+                    ["!king10"] = {Name = "10. วงแหวนเซียนล้างบางสคริปต์เถื่อน (Script Destroyer)", Color = Color3.fromRGB(0, 255, 255)},
+                    ["!king11"] = {Name = "11. หอกแสงสวรรค์ทะลวงโปร (Divine Spear)", Color = Color3.fromRGB(255, 255, 255)},
+                    ["!king12"] = {Name = "12. ม่านพลังป้องกันเทเลพอร์ตเถื่อน (Anti-Teleport Wall)", Color = Color3.fromRGB(30, 144, 255)},
+                    ["!king13"] = {Name = "13. เพลิงสุริยะเผาทำลายพวกโกงเกม (Solar Flare Cheat Burn)", Color = Color3.fromRGB(255, 140, 0)},
+                    ["!king14"] = {Name = "14. คลื่นเสียงคำรามราชาขับไล่แฮก (King's Roar)", Color = Color3.fromRGB(255, 215, 0)},
+                    ["!king15"] = {Name = "15. เสาหลักผนึกพลังโกง (Anti-Cheat Pillar)", Color = Color3.fromRGB(112, 128, 144)},
+                    ["!king16"] = {Name = "16. ตาข่ายแสงสวรรค์จับกุมโปร (Light Net Capture)", Color = Color3.fromRGB(240, 230, 140)},
+                    ["!king17"] = {Name = "17. ห้วงมิติสุญญากาศลบโปรแกรม (Void Erase)", Color = Color3.fromRGB(47, 79, 79)},
+                    ["!king18"] = {Name = "18. คทาราชาประทานพรผู้เล่น (Player Blessings)", Color = Color3.fromRGB(50, 205, 50)},
+                    ["!king19"] = {Name = "19. สายฟ้าทัณฑ์สวรรค์ผ่าคนโกง (Heavenly Lightning)", Color = Color3.fromRGB(255, 255, 0)},
+                    ["!king20"] = {Name = "20. โล่สะท้อนดาเมจโปร (Damage Reflect Barrier)", Color = Color3.fromRGB(0, 100, 0)},
+                    ["!king21"] = {Name = "21. บัลลังก์สุริยันต์ขับไล่ความมืด (Solar Throne)", Color = Color3.fromRGB(255, 165, 0)},
+                    ["!king22"] = {Name = "22. คลื่นกระแทกสุญญากาศ (Vacuum Blast)", Color = Color3.fromRGB(176, 196, 222)},
+                    ["!king23"] = {Name = "23. ระเบิดแสงศักดิ์สิทธิ์ล้างมลทิน (Holy Light Burst)", Color = Color3.fromRGB(255, 250, 205)},
+                    ["!king24"] = {Name = "24. คัมภีร์ราชันย์สะกดวิญญาณโปร (King's Scroll)", Color = Color3.fromRGB(139, 69, 19)},
+                    ["!king25"] = {Name = "25. ปีกเทวะคุ้มภัยเซิร์ฟเวอร์ (Divine Wings)", Color = Color3.fromRGB(175, 238, 238)},
+                    ["!king26"] = {Name = "26. ศรวายุพิฆาตคนโกง (Wind Arrow)", Color = Color3.fromRGB(144, 238, 144)},
+                    ["!king27"] = {Name = "27. ดินแดนศักดิ์สิทธิ์ห้ามใช้โปร (Sacred Zone)", Color = Color3.fromRGB(218, 165, 32)},
+                    ["!king28"] = {Name = "28. คลื่นมิติเวลาหยุดนิ่ง (Time Freeze Field)", Color = Color3.fromRGB(70, 130, 180)},
+                    ["!king29"] = {Name = "29. หมัดราชันย์ทะลวงสวรรค์ (King's Fist)", Color = Color3.fromRGB(255, 69, 0)},
+                    ["!king30"] = {Name = "30. มหาประกาศิตราชาผู้ครองพิภพ (The Supreme King Rule)", Color = Color3.fromRGB(255, 215, 0)}
+                }
+                
+                local skill = kingSkills[message]
+                if skill then
+                    -- ส่งเอฟเฟกต์ให้ทุกคนเห็นทั่วทั้งแมพ
+                    remoteEvent:FireAllClients(player.Name, skill.Name, skill.Color, skill.Type)
+                end
+            end
+        end)
+    end)
+
+    -- รับคำสั่งเตะผู้เล่นเป้าหมายจริงจาก Client (เฉพาะสกิลที่ 1)
+    remoteEvent.OnServerEvent:Connect(function(attacker, targetPlayer, skillType)
+        if skillType == "kick_exploit" and targetPlayer and targetPlayer:IsA("Player") and targetPlayer ~= attacker then
+            local banDuration = 30 * 60 -- แบน 30 นาที
+            bannedExploiters[targetPlayer.UserId] = os.time() + banDuration
+            
+            targetPlayer:Kick("👑 [ANTI-EXPLOIT KICK]: คุณถูกราชันย์ " .. attacker.Name .. " ตรวจพบโปรแกรมโกงและเตะออกจากแมพ!\nห้ามเข้าเกมนี้เป็นเวลา 30 นาที")
+        end
+    end)
+
+-- ==========================================
+-- ส่วนที่ 2: ระบบฝั่ง Client (เอฟเฟกต์หน้าจอและเลือกเป้าหมาย)
+-- ==========================================
+else
+    local player = Players.LocalPlayer
+    local mouse = player:GetMouse()
+
+    local function showKingSkillVisual(playerName, skillName, color, skillType)
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "KingSkillEffectGUI"
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+
+        -- แฟลชแสงอลังการทั่วหน้าจอ
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = color
+        frame.BackgroundTransparency = 0.4
+        frame.Parent = screenGui
+
+        -- ป้ายชื่อสกิลราชาตรงกลางจอให้ทุกคนเห็น
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(0, 900, 0, 180)
+        textLabel.Position = UDim2.new(0.5, -450, 0.35, -90)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextScaled = true
+        textLabel.Font = Enum.Font.GothamBlack
+        textLabel.Text = "👑 " .. skillName .. " 👑\n[ ผู้ใช้พลัง: " .. playerName .. " ]"
+        textLabel.Parent = screenGui
+
+        -- ลบเอฟเฟกต์อัตโนมัติหลัง 3.5 วินาที
+        task.delay(3.5, function()
+            screenGui:Destroy()
+        end)
+        
+        -- ถ้าใช้สกิลที่ 1 (หยุดเวลา & เตะโปร) และเราคือคนใช้ ให้คลิกเล็งเป้าหมายที่ใช้โปร
+        if skillType == "kick_exploit" and playerName == player.Name then
+            local targetChar = mouse.Target
+            if targetChar and targetChar.Parent then
+                local humanoid = targetChar.Parent:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local targetPlayer = Players:GetPlayerFromCharacter(humanoid.Parent)
+                    if targetPlayer then
+                        remoteEvent:FireServer(targetPlayer, "kick_exploit")
+                    end
+                end
+            end
+        end
+    end
+
+    remoteEvent.OnClientEvent:Connect(function(playerName, skillName, color, skillType)
+        showKingSkillVisual(playerName, skillName, color, skillType)
+    end)
+end
