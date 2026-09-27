@@ -1,0 +1,164 @@
+-- ==========================================================
+-- ULTIMATE KING SYSTEM + ADMIN C_rongg REPORT RADAR
+-- ==========================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+-- 1. ระบบป้องกันการถูกโจมตีและกันโปรเตะ (God Mode)
+local function applyGodMode(player)
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid", 5)
+        local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+        
+        if humanoid and rootPart then
+            humanoid.HealthChanged:Connect(function()
+                if humanoid.Health < humanoid.MaxHealth then
+                    humanoid.Health = humanoid.MaxHealth
+                end
+            end)
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+        end
+    end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    applyGodMode(player)
+    
+    -- 2. ฟังก์ชันเปลี่ยนชื่อบนหัวผู้เล่นให้เป็น King👑
+    player.CharacterAdded:Connect(function(character)
+        local head = character:WaitForChild("Head", 5)
+        if not head then return end
+        
+        if head:FindFirstChild("KingTitleTag") then
+            head.KingTitleTag:Destroy()
+        end
+        
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "KingTitleTag"
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = head
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- สีทอง
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextScaled = true
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.Text = "King👑"
+        textLabel.Parent = billboard
+    end)
+end)
+
+-- 3. ฟังก์ชันบอดี้การ์ด 4 ตัว + เรดาร์เตะโปร + เรดาร์ส่งรายงานหาแอดมิน C_rongg
+local function spawnBodyguards(player)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+    if not humanoidRootPart then return end
+
+    for i = 1, 4 do
+        task.spawn(function()
+            local npc = Instance.new("Model")
+            npc.Name = "KingGuard_SmartRadar_" .. i
+            
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(2, 3, 1)
+            part.Position = humanoidRootPart.Position + Vector3.new(i * 3, 0, 3)
+            part.BrickColor = BrickColor.new("Bright blue")
+            part.Parent = npc
+            
+            local humanoid = Instance.new("Humanoid")
+            humanoid.MaxHealth = 100
+            humanoid.Health = 100
+            humanoid.Parent = npc
+            
+            npc.PrimaryPart = part
+            npc.Parent = Workspace
+            
+            local exploitHits = {}
+            local reportedCheaters = {} -- ป้องกันการส่งรายงานซ้ำๆ สำหรับคนเดิม
+
+            while npc and npc.Parent and character and character.Parent do
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                local npcHrp = npc.PrimaryPart
+                
+                if hrp and npcHrp then
+                    -- เดินตามหลังเจ้าของ
+                    local angle = (i / 4) * (2 * math.pi) + tick() * 2
+                    local offset = Vector3.new(math.cos(angle) * 5, 0, math.sin(angle) * 5)
+                    local targetPos = hrp.Position + offset
+                    humanoid:MoveTo(targetPos)
+                    
+                    -- เรดาร์ตรวจจับผู้เล่นคนอื่น
+                    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+                        if otherPlayer ~= player and otherPlayer.Character then
+                            local otherHrp = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            local otherHumanoid = otherPlayer.Character:FindFirstChildOfClass("Humanoid")
+                            
+                            if otherHrp and otherHumanoid and otherHumanoid.Health > 0 then
+                                -- ตรวจสอบความผิดปกติ (สปีดฮัก หรือ บิน)
+                                local isExploiting = false
+                                if otherHumanoid.WalkSpeed > 25 or (otherHrp.Position.Y - hrp.Position.Y > 20) then
+                                    isExploiting = true
+                                end
+                                
+                                local distance = (npcHrp.Position - otherHrp.Position).Magnitude
+                                
+                                if distance <= 35 or isExploiting then
+                                    otherHumanoid:TakeDamage(20)
+                                    exploitHits[otherPlayer] = (exploitHits[otherPlayer] or 0) + 1
+                                    
+                                    -- ==========================================
+                                    -- เรดาร์ระบบที่ 2: ส่งข้อความแจ้งแอดมิน C_rongg
+                                    -- ==========================================
+                                    if (isExploiting or exploitHits[otherPlayer] >= 2) and not reportedCheaters[otherPlayer] then
+                                        reportedCheaters[otherPlayer] = true
+                                        
+                                        -- ค้นหาว่าในเซิร์ฟเวอร์มีแอดมินชื่อ C_rongg อยู่ไหม
+                                        local adminPlayer = Players:FindFirstChild("C_rongg")
+                                        if adminPlayer then
+                                            -- ส่งข้อความแจ้งเตือนส่วนตัวหรือพิมพ์บอกแอดมินในแชทเกม
+                                            print("🚨 [ADMIN REPORT SENT TO C_rongg] Cheater detected: " .. otherPlayer.Name)
+                                            -- จำลองการส่งข้อความรายงาน
+                                            local reportMsg = "Hello, I am the main program manager of MapObby. I am... RTKT995 I'm here to help you because your map is full of cheaters. (Detected Cheater: " .. otherPlayer.Name .. ")"
+                                            
+                                            -- ส่งข้อความแจ้งเตือนให้แอดมินเห็น (ระบบ Output / Chat แจ้งเตือน)
+                                            local StarterGui = game:GetService("StarterGui")
+                                            pcall(function()
+                                                StarterGui:SetCore("ChatMakeSystemMessage", {
+                                                    Text = "[MAP MANAGER REPORT]: " .. reportMsg,
+                                                    Color = Color3.fromRGB(255, 0, 0),
+                                                    Font = Enum.Font.SourceSansBold,
+                                                    FontSize = Enum.FontSize.Size24
+                                                })
+                                            end)
+                                        end
+                                    end
+                                    
+                                    -- เตะโปรออกจากแมพ (ยังเข้าใหม่ได้) เมื่อสะสมครบ 3 ครั้งหรือพบโปรชัดเจน
+                                    if exploitHits[otherPlayer] >= 3 or isExploiting then
+                                        otherPlayer:Kick("🛡️ [KING RADAR]: ตรวจพบโปรแกรมโกง! คุณถูกบอดี้การ์ดเตะออกจากแมพ (ชื่อโปรที่ถูกรายงาน: " .. otherPlayer.Name .. ")")
+                                        exploitHits[otherPlayer] = nil
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.4)
+            end
+        end)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(2)
+        spawnBodyguards(player)
+    end)
+end)
