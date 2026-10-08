@@ -1,0 +1,154 @@
+-- ส่วนแสดงผล + ช่องพิมพ์ชื่อ + หน้าจอต้อนรับ
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- ========== หน้าจอต้อนรับ ==========
+local WelcomeScreen = Instance.new("ScreenGui")
+WelcomeScreen.Name = "WelcomeScreen"
+WelcomeScreen.Parent = PlayerGui
+
+local BackFrame = Instance.new("Frame")
+BackFrame.Size = UDim2.new(0, 0, 0, 0)
+BackFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+BackFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+BackFrame.BorderSizePixel = 3
+BackFrame.BorderColor3 = Color3.fromRGB(255, 215, 0)
+BackFrame.BackgroundTransparency = 1
+BackFrame.Parent = WelcomeScreen
+
+local MainText = Instance.new("TextLabel")
+MainText.Size = UDim2.new(0, 500, 0, 80)
+MainText.Position = UDim2.new(0.5, -250, 0.5, -40)
+MainText.BackgroundTransparency = 1
+MainText.Font = Enum.Font.GothamBold
+MainText.TextColor3 = Color3.new(1, 1, 1)
+MainText.TextSize = 42
+MainText.Text = ""
+MainText.TextTransparency = 1
+MainText.Parent = BackFrame
+
+local SubText = Instance.new("TextLabel")
+SubText.Size = UDim2.new(0, 450, 0, 50)
+SubText.Position = UDim2.new(0.5, -225, 0.5, 25)
+SubText.BackgroundTransparency = 1
+SubText.Font = Enum.Font.Gotham
+SubText.TextColor3 = Color3.fromRGB(255, 215, 0)
+SubText.TextSize = 28
+SubText.Text = ""
+SubText.TextTransparency = 1
+SubText.Parent = BackFrame
+
+local TimerText = Instance.new("TextLabel")
+TimerText.Size = UDim2.new(0, 250, 0, 40)
+TimerText.Position = UDim2.new(0.5, -125, 0.85, -20)
+TimerText.BackgroundTransparency = 1
+TimerText.Font = Enum.Font.Gotham
+TimerText.TextColor3 = Color3.fromRGB(255, 215, 0)
+TimerText.TextSize = 24
+TimerText.Text = ""
+TimerText.TextTransparency = 1
+TimerText.Parent = BackFrame
+
+-- แอนิเมชันต้อนรับ
+task.wait(1)
+BackFrame.BackgroundTransparency = 0.3
+BackFrame:TweenSizeAndPosition(UDim2.new(0, 550, 0, 250), UDim2.new(0.5, -275, 0.5, -125), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.6, true)
+
+task.wait(0.8)
+MainText.Text = "✨ ยินดีต้อนรับ ✨"
+MainText.TextTransparency = 0
+
+task.wait(1.5)
+SubText.Text = "สู่แมพ Tyco Script"
+SubText.TextTransparency = 0
+
+task.wait(2)
+MainText.Text = "🎂 ครบรอบ 1 ปี 🎂"
+SubText.Text = "ทุกคนได้รับ 1,000,000,000 โรบัคในเกม!"
+
+task.wait(1)
+TimerText.Text = "⏰ ปิดหน้าจอใน 10 วินาที"
+TimerText.TextTransparency = 0
+for i = 10, 1, -1 do
+    TimerText.Text = "⏰ ปิดหน้าจอใน " .. i .. " วินาที"
+    task.wait(1)
+end
+
+MainText.TextTransparency = 1
+SubText.TextTransparency = 1
+TimerText.TextTransparency = 1
+BackFrame.BackgroundTransparency = 1
+BackFrame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true)
+task.wait(0.6)
+WelcomeScreen:Destroy()
+
+-- ========== ระบบโดเนทพิมพ์ชื่อ ==========
+local DonateUI = Instance.new("ScreenGui")
+DonateUI.Name = "FakeDonateUI"
+DonateUI.Parent = PlayerGui
+
+local Notice = Instance.new("TextLabel")
+Notice.Size = UDim2.new(0, 360, 0, 80)
+Notice.Position = UDim2.new(0.02, 0, 0.02, 0)
+Notice.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+Notice.BorderSizePixel = 3
+Notice.BorderColor3 = Color3.fromRGB(255, 215, 0)
+Notice.Font = Enum.Font.GothamBold
+Notice.TextColor3 = Color3.new(1, 1, 1)
+Notice.TextSize = 20
+Notice.Text = "💖 กรุณาพิมพ์ชื่อคนที่ต้องการโดเนทให้"
+Notice.Parent = DonateUI
+
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(0, 280, 0, 50)
+InputBox.Position = UDim2.new(0.02, 0, 0.15, 0)
+InputBox.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+InputBox.BorderSizePixel = 2
+InputBox.BorderColor3 = Color3.fromRGB(150, 150, 255)
+InputBox.Font = Enum.Font.Gotham
+InputBox.TextColor3 = Color3.new(1, 1, 1)
+InputBox.TextSize = 20
+InputBox.Text = "พิมพ์ชื่อตรงนี้..."
+InputBox.ClearTextOnFocus = true
+InputBox.Parent = DonateUI
+
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Size = UDim2.new(0, 160, 0, 50)
+SubmitBtn.Position = UDim2.new(0.02, 0, 0.26, 0)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+SubmitBtn.Font = Enum.Font.GothamBold
+SubmitBtn.TextColor3 = Color3.new(1, 1, 1)
+SubmitBtn.TextSize = 20
+SubmitBtn.Text = "✨ โดเนท 1,000,000,000"
+SubmitBtn.Parent = DonateUI
+
+-- กดส่ง
+SubmitBtn.MouseButton1Click:Connect(function()
+	local name = InputBox.Text
+	if name == "" or name == "พิมพ์ชื่อตรงนี้..." then
+		Notice.Text = "⚠️ กรุณาพิมพ์ชื่อก่อนนะ!"
+		Notice.BackgroundColor3 = Color3.fromRGB(150, 80, 40)
+		task.wait(2)
+		Notice.Text = "💖 กรุณาพิมพ์ชื่อคนที่ต้องการโดเนทให้"
+		Notice.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+		return
+	end
+	ReplicatedStorage:WaitForChild("FakeDonateNameEvent"):FireServer(name, 1000000000)
+	Notice.Text = "✅ ส่งให้ " .. name .. " แล้ว!"
+	Notice.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
+	task.wait(2)
+	Notice.Text = "💖 กรุณาพิมพ์ชื่อคนที่ต้องการโดเนทให้"
+	Notice.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+	InputBox.Text = ""
+end)
+
+-- รับแจ้งเตือน
+local Event = ReplicatedStorage:WaitForChild("FakeDonateEvent")
+Event.OnClientEvent:Connect(function(name, amount)
+	Notice.Text = "💖 " .. name .. " โดเนท " .. amount .. " โรบัค!"
+	Notice.BackgroundColor3 = Color3.fromRGB(35, 100, 60)
+	task.wait(4)
+	Notice.Text = "💖 กรุณาพิมพ์ชื่อคนที่ต้องการโดเนทให้"
+	Notice.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+end)
