@@ -1,0 +1,201 @@
+-- สร้างหน้าต่าง GUI และระบบสกิล Dragon Ball (เวอร์ชันขยายเพิ่มสกิล)
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+local Character = player.Character or player.CharacterAdded:Wait()
+player.CharacterAdded:Connect(function(char)
+	Character = char
+end)
+
+-- สร้าง ScreenGui หลัก
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DragonBallMenuExtended"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- 1. ปุ่มสำหรับเปิด/ปิด หน้าต่าง (Toggle Button)
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 130, 0, 40)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Text = "DBZ Menu (Pro)"
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextScaled = true
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.Parent = screenGui
+
+-- 2. หน้าต่างหลัก (Main Frame - ขยายขนาดให้ยาวขึ้นเพื่อรองรับสกิลเพิ่ม)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 320, 0, 560)
+mainFrame.Position = UDim2.new(0, 20, 0, 70)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 2
+mainFrame.Visible = false -- ซ่อนไว้ก่อนเริ่มต้น
+mainFrame.Parent = screenGui
+
+-- หัวข้อหน้าต่าง
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "Dragon Ball Skills (1000% Ultra)"
+title.BackgroundColor3 = Color3.fromRGB(200, 50, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.SourceSansBold
+title.Parent = mainFrame
+
+-- ฟังก์ชันเปิด/ปิด หน้าต่าง
+local isOpen = false
+toggleButton.MouseButton1Click:Connect(function()
+	isOpen = not isOpen
+	mainFrame.Visible = isOpen
+end)
+
+-- ฟังก์ชันสร้างปุ่มสกิลด้านในหน้าต่าง
+local function createSkillButton(name, posY, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0.9, 0, 0, 42)
+	btn.Position = UDim2.new(0.05, 0, 0, posY)
+	btn.Text = name
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.TextScaled = true
+	btn.Font = Enum.Font.SourceSansBold
+	btn.Parent = mainFrame
+	
+	btn.MouseButton1Click:Connect(callback)
+end
+
+-- ฟังก์ชันสร้างแสงออร่ารอบตัว (Visual Effect)
+local function createAura(color, name)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = Character.HumanoidRootPart
+	
+	if hrp:FindFirstChild("DBZAura") then
+		hrp.DBZAura:Destroy()
+	end
+	
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "DBZAura"
+	attachment.Parent = hrp
+	
+	local particle = Instance.new("ParticleEmitter")
+	particle.Name = name
+	particle.Color = ColorSequence.new(color)
+	particle.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 6)})
+	particle.Texture = "rbxassetid://258129463"
+	particle.Lifetime = NumberRange.new(0.5, 1)
+	particle.Rate = 120
+	particle.Speed = NumberRange.new(6, 18)
+	particle.Parent = attachment
+	
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 18
+	light.Brightness = 6
+	light.Parent = hrp
+	
+	task.delay(4, function()
+		if attachment then attachment:Destroy() end
+		if light then light:Destroy() end
+	end)
+end
+
+--- รายการสกิลทั้งหมด (เพิ่มจัดเต็ม) ---
+
+-- 1. พลังคลื่นเต่า (Kamehameha)
+createSkillButton("1. Kamehameha (พลังคลื่นเต่า)", 50, function()
+	print("กำลังชาร์จพลัง Kamehameha ระดับ 1000%!")
+	createAura(Color3.fromRGB(0, 170, 255), "BlueAura")
+	local char = player.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = 0
+		task.wait(1.5)
+		char.Humanoid.WalkSpeed = 16
+	end
+end)
+
+-- 2. ซุปเปอร์ไซย่า (Super Saiyan)
+createSkillButton("2. Super Saiyan (แปลงร่างสีทอง)", 98, function()
+	print("แปลงร่างเป็น Super Saiyan พลังพุ่งพล่าน!")
+	createAura(Color3.fromRGB(255, 230, 0), "GoldAura")
+	local char = player.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = 28
+		char.Humanoid.JumpPower = 80
+	end
+end)
+
+-- 3. บอลเกงกิ (Spirit Bomb)
+createSkillButton("3. Spirit Bomb (บอลเกงกิ)", 146, function()
+	print("รวบรวมพลังจากสิ่งมีชีวิตทั่วจักรวาล!")
+	createAura(Color3.fromRGB(200, 200, 255), "SpiritAura")
+end)
+
+-- 4. หมัดเจ้าพิภพ (Kaioken x20)
+createSkillButton("4. Kaioken x20 (ออร่าแดงเดือด)", 194, function()
+	print("เปิดใช้งาน Kaioken x20!")
+	createAura(Color3.fromRGB(255, 0, 0), "RedAura")
+	local char = player.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = 35
+		char.Humanoid.JumpPower = 100
+		task.delay(5, function()
+			if char and char:FindFirstChild("Humanoid") then
+				char.Humanoid.WalkSpeed = 16
+				char.Humanoid.JumpPower = 50
+			end
+		end)
+	end
+end)
+
+-- 5. เคลื่อนย้ายพริบตา (Instant Transmission)
+createSkillButton("5. Instant Transmission (วาร์ป)", 242, function()
+	local char = player.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		createAura(Color3.fromRGB(255, 255, 255), "FlashAura")
+		char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + (char.HumanoidRootPart.CFrame.LookVector * 40)
+		print("เคลื่อนย้ายพริบตาสำเร็จ!")
+	end
+end)
+
+-- 6. กาลิคกัน (Garick Gun)
+createSkillButton("6. Garick Gun (พลังสีม่วงพิฆาต)", 290, function()
+	print("ชาร์จพลังกาลิคกัน!")
+	createAura(Color3.fromRGB(150, 0, 255), "PurpleAura")
+end)
+
+-- 7. บอลพลังมรณะ (Death Ball)
+createSkillButton("7. Death Ball (ฟรีซเซอร์สไตล์)", 338, function()
+	print("สร้างบอลพลังมรณะสีดำแดง!")
+	createAura(Color3.fromRGB(255, 50, 50), "DeathAura")
+end)
+
+-- 8. ไม้ตายอัลตร้าอินstinct (Ultra Instinct)
+createSkillButton("8. Ultra Instinct (อัตตาราวินญาณ)", 386, function()
+	print("เข้าสู่สภาวะอัตตาราวินญาณ (ผมเงิน)!")
+	createAura(Color3.fromRGB(200, 220, 255), "UIAura")
+	local char = player.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = 45
+		char.Humanoid.JumpPower = 120
+		task.delay(6, function()
+			if char and char:FindFirstChild("Humanoid") then
+				char.Humanoid.WalkSpeed = 16
+				char.Humanoid.JumpPower = 50
+			end
+		end)
+	end
+end)
+
+-- 9. บิ๊กแบงคัท (Big Bang Attack)
+createSkillButton("9. Big Bang Attack (เบจิต้า)", 434, function()
+	print("ยิงบิ๊กแบงคัทระเบิดพลังงานสูง!")
+	createAura(Color3.fromRGB(0, 200, 255), "BigBangAura")
+end)
+
+-- 10. ฮาไค / ทำลายล้างขั้นสุดยอด (Hakai 1000%)
+createSkillButton("10. Hakai (พลังทำลายล้างเทพเจ้า)", 482, function()
+	print("ใช้พลังฮาไค ลบทุกสิ่งให้หายไป!")
+	createAura(Color3.fromRGB(100, 0, 150), "HakaiAura")
+end)
