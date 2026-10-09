@@ -1,0 +1,42 @@
+-- สร้าง ScreenGui หลัก
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SimpleToggleUI"
+screenGui.Parent = playerGui
+
+-- ปุ่มสำหรับกดเปิด/ปิด
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 120, 0, 50)
+toggleButton.Position = UDim2.new(0.05, 0, 0.05, 0)
+toggleButton.Text = "เปิด/ปิด เมนู"
+toggleButton.TextSize = 16
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Parent = screenGui
+
+-- หน้าต่าง UI หลักที่ต้องการเปิด/ปิด
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.Visible = false -- ตั้งค่าให้ซ่อนไว้ตอนเริ่มเกม
+mainFrame.Parent = screenGui
+
+-- ฟังก์ชันหลัก: สลับสถานะการแสดงผลของหน้าต่าง (เปิด <-> ปิด)
+local function toggleUI()
+	mainFrame.Visible = not mainFrame.Visible
+	
+	-- ตัวอย่างฟังก์ชันเสริม (เพิ่มข้อความหรือเอฟเฟกต์เบื้องต้นเมื่อเปิด)
+	if mainFrame.Visible then
+		print("เปิดหน้าต่างสำเร็จ!")
+	else
+		print("ปิดหน้าต่างสำเร็จ!")
+	end
+end
+
+-- เชื่อมโยงปุ่มเข้ากับฟังก์ชัน
+toggleButton.MouseButton1Click:Connect(toggleUI)
